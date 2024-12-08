@@ -6,6 +6,9 @@ const authValidators = require('../validtators/authValidators');
 router.post('/signup', authValidators.signupValidator, authController.postSignup);
 // /auth/login
 router.post('/login', authValidators.loginValidator, authController.postLogin)
-
+// auth/sendOTP 
+router.post('/sendOTP', authController.sendOTP);
+// auth/verifyOTP
+router.post('/verifyOTP', authController.verifyOTP);
 
 module.exports = router; 
