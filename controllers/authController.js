@@ -91,6 +91,44 @@ const sendOTP = async (user) => {
 	}
 }
 
+const forgetPass = async (req, res, next) => {
+	const { email } = req.body;
+	try {
+		const user = await userModel.findOne({ email });
+
+		if (!user) customErr(404, "this user not found , please Signup");
+
+		sendOTP(user);
+
+		res.status(201).json({
+			message: 'OTP sent successfully , please check your mail inbox',
+		})
+	} catch (error) {
+		console.log(error);
+		next(error);
+	}
+}
+
+const changePass = async (req, res, next) => {
+	const { email, newPass, confirmPass } = req.body;
+	try {
+		const user = await userModel.findOne({ email });
+		if (!user) customErr(404, "this user not found , please Signup");
+
+		if (newPass !== confirmPass) customErr(422, "passwords not equal");
+
+		const hashedPass = await bcrypt.hash(newPass, 12);
+		user.password = hashedPass;
+		await user.save();
+
+		res.status(200).json({ message: "Password reset successful" });
+
+	} catch (error) {
+		console.log(error);
+		next(error);
+	}
+}
+
 const verifyOTP = async (req, res, next) => {
 	const { email, OTP } = req.body;
 	try {
@@ -116,5 +154,5 @@ const verifyOTP = async (req, res, next) => {
 }
 
 module.exports = {
-	postSignup, postLogin, sendOTP, verifyOTP
+	postSignup, postLogin, sendOTP, verifyOTP, forgetPass, changePass
 };
