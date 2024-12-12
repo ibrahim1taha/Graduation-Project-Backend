@@ -60,11 +60,13 @@ const postLogin = async (req, res, next) => {
 
 			res.status(200).json({
 				message: 'Login successful.',
+				user,
 				token
 			})
 		} else {
 			sendOTP(user);
 			res.status(200).json({
+				user,
 				message: 'Verification code sent successfully! ',
 			})
 		}
