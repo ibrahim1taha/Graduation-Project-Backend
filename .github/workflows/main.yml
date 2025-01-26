@@ -1,0 +1,47 @@
+name: Build & Deploy Nodejs API
+env:
+  HOST: api.ailivementor.solutions
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events for the main branch
+  push:
+    branches: [ "main" ]
+  # A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  Build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+  
+      - name: Docker Login
+        uses: docker/login-action@v3
+        with: 
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASS }}
+          
+      - name: docker build main branch
+        if: github.ref == 'refs/heads/main'
+        run: |
+          docker build -t api .
+          docker tag api ibrahim1taha/nodejs-api:${GITHUB_REF#refs/heads/}
+          docker push ibrahim1taha/nodejs-api:${GITHUB_REF#refs/heads/}
+
+#  Deploy:
+#    runs-on: ubuntu-latest
+#    needs: Build
+#    steps:      
+#      - name: setup ssh
+#        uses: webfactory/ssh-agent@v0.9.0
+#        with:
+#            ssh-private-key: | 
+#                ${{ secrets.BACKEND_KEY }}
+            
+#      - name: Deploy to Main
+#        if: github.ref == 'refs/heads/main'
+#        run: |
+#          ssh-keyscan -t rsa ${{ env.HOST }} >> /home/runner/.ssh/known_hosts
+#          ssh root@${{ env.HOST }} "docker-compose pull nodejs-api && docker-compose up -d nodejs-api" 
