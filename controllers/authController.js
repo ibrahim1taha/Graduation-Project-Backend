@@ -155,6 +155,21 @@ const verifyOTP = async (req, res, next) => {
 	}
 }
 
+
+// test api 
+const getUsers = async (req, res, next) => {
+	try {
+		const users = await userModel.find();
+		res.status(200).json({
+			users,
+			message: "All users"
+		})
+	} catch (err) {
+		next(err)
+	}
+}
+
+
 module.exports = {
-	postSignup, postLogin, sendOTP, verifyOTP, forgetPass, changePass
+	postSignup, postLogin, sendOTP, verifyOTP, forgetPass, changePass, getUsers
 };

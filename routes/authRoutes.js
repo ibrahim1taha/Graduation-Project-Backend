@@ -12,5 +12,7 @@ router.post('/changePass', authController.changePass);
 router.post('/forgetPass', authController.forgetPass);
 // auth/verifyOTP
 router.post('/verifyOTP', authController.verifyOTP);
+// auth/users
+router.get('/users', authController.getUsers)
 
 module.exports = router; 
