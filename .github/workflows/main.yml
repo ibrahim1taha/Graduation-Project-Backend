@@ -44,4 +44,4 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: |
           ssh-keyscan -t rsa ${{ env.HOST }} >> /home/runner/.ssh/known_hosts
-          ssh root@${{ env.HOST }} "docker-compose pull nodejs-api && docker-compose up -d nodejs-api" 
+          ssh root@${{ env.HOST }} "docker compose pull nodejs-api && docker compose up -d nodejs-api" 
