@@ -8,13 +8,15 @@ const connectDB = require('./config/db_connection');
 connectDB();
 
 const authRouter = require('./routes/authRoutes');
+const coursesRouter = require('./routes/courseRoutes');
 
 //allows a server to indicate any origins (domain, scheme, or port)
 app.use(cors());
 // parse incoming requests.
 app.use(express.json());
 
-app.use('/auth', authRouter)
+app.use('/', coursesRouter);
+app.use('/auth', authRouter);
 
 app.use((error, req, res, next) => {
 	const status = error.statusCode || 500;
