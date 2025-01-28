@@ -26,9 +26,12 @@ const userSchema = mongoose.Schema({
 		type: String,
 		required: true,
 	},
+	myLearning: {
+
+	},
 	createdAt: {
 		type: Date,
-		default: Date.now()
+		default: Date.now
 	}
 })
 

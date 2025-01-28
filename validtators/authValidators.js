@@ -20,9 +20,9 @@ const signupValidator = [
 ];
 
 
-const loginValidator = [
+const emailPassValidations = [
 	body('email', "invalid Email").trim().isEmail().normalizeEmail(),
 	body('password', "password must be more than 8 characters").isLength({ min: 8 })
 ];
 
-module.exports = { signupValidator, loginValidator }
+module.exports = { signupValidator, emailPassValidations }
