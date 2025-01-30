@@ -27,10 +27,6 @@ const authorized = async (req, res, next) => {
 		next();
 
 	} catch (err) {
-		if (!err.statusCode) {
-			err.statusCode = 500;
-			err.message = 'Internal server error';
-		}
 		console.log(err);
 		next(err);
 	}

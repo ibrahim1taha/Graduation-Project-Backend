@@ -25,4 +25,6 @@ const emailPassValidations = [
 	body('password', "password must be more than 8 characters").isLength({ min: 8 })
 ];
 
-module.exports = { signupValidator, emailPassValidations }
+
+
+module.exports = { signupValidator, emailPassValidations, }

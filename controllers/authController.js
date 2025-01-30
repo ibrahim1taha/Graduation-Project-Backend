@@ -1,3 +1,4 @@
+// ****** make authServices ****** //
 const bcrypt = require('bcryptjs');
 //models 
 const userModel = require('../models/users');

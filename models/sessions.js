@@ -15,4 +15,4 @@ const sessionsSchema = mongoose.Schema({
 sessionsSchema.index({ course: 1 });
 
 
-module.exports = mongoose.model('sessions', sessionsSchema); 
+module.exports = mongoose.model('sessions', sessionsSchema);
