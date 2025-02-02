@@ -1,29 +1,23 @@
-const bcrypt = require('bcryptjs');
-//models 
 const userModel = require('../models/users');
 const otpModel = require('../models/otp');
 
-const jwt = require('jsonwebtoken');
-const { validationResult } = require('express-validator');
+const authServices = require('../services/authServices');
 const customErr = require('../utils/customErr');
-
-const sendOTPEmail = require('../utils/sendOTPEmail');
 
 const postSignup = async (req, res, next) => {
 	try {
-		const validationErr = validationResult(req);
-		console.log(validationErr.array());
-		if (!validationErr.isEmpty()) customErr(422, validationErr.array()[0].msg);
+
+		authServices.validationRes(req);
 
 		const { userName, email, role, password } = req.body;
 
-		const hashedPass = await bcrypt.hash(password, 12);
+		const hashedPass = await authServices.hashPassword(password);
 
 		const newUser = new userModel({ userName: userName, email: email, role: role, password: hashedPass });
 
 		await newUser.save();
 
-		sendOTP(newUser);
+		authServices.sendOTP(newUser);
 
 		res.status(201).json({
 			user: newUser,
@@ -40,24 +34,24 @@ const postLogin = async (req, res, next) => {
 	const { email, password } = req.body;
 
 	try {
-		const validationErr = validationResult(req);
-		if (!validationErr.isEmpty()) customErr(422, validationErr.array()[0].msg)
+		authServices.validationRes(req);
+
 		const user = await userModel.findOne({ email });
 		if (!user) customErr(422, "Invalid Email or Password!")
 
-		const isPassMatch = await bcrypt.compare(password, user.password);
-		if (!isPassMatch) customErr(422, "Invalid Email or Password!")
+		const correctCredentials = await authServices.decodePassword(password, user)
+		if (!correctCredentials)
+			customErr(422, "Invalid Email or Password!");
 
 		if (user.verified) {
-			const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: 60 * 60 * 24 * 7 })
-
+			const token = authServices.generateToken(user);
 			res.status(200).json({
 				message: 'Login successful.',
 				user,
 				token
 			})
 		} else {
-			sendOTP(user);
+			authServices.sendOTP(user);
 			res.status(200).json({
 				user,
 				message: 'Verification code sent successfully! ',
@@ -69,31 +63,15 @@ const postLogin = async (req, res, next) => {
 	}
 }
 
-const sendOTP = async (user) => {
-	try {
-
-		const OTP = Math.floor(100000 + Math.random() * 900000).toString();
-		console.log(OTP);
-
-		await otpModel.findOneAndDelete({ email: user.email });
-
-		await otpModel.create({ email: user.email, otp: OTP });
-
-		sendOTPEmail.sendOTPEmail(user.email, OTP, user.userName);
-
-	} catch (error) {
-		console.log(error);
-	}
-}
-
 const forgetPass = async (req, res, next) => {
 	const { email } = req.body;
 	try {
+		authServices.validationRes(req);
 		const user = await userModel.findOne({ email });
 
 		if (!user) customErr(404, "this user not found , please Signup");
 
-		sendOTP(user);
+		authServices.sendOTP(user);
 
 		res.status(201).json({
 			message: 'OTP sent successfully , please check your mail inbox',
@@ -105,17 +83,15 @@ const forgetPass = async (req, res, next) => {
 }
 
 const changePass = async (req, res, next) => {
-	const { email, password, confirmPass } = req.body;
+	const { email, password, confirmPassword } = req.body;
 	try {
-		const validationErr = validationResult(req);
-		if (!validationErr.isEmpty()) customErr(422, validationErr.array()[0].msg)
+		authServices.validationRes(req);
+
 		const user = await userModel.findOne({ email });
 		if (!user) customErr(404, "this user not found , please Signup");
 
-		if (password !== confirmPass) customErr(422, "passwords not equal");
+		user.password = await authServices.hashPassword(password);
 
-		const hashedPass = await bcrypt.hash(password, 12);
-		user.password = hashedPass;
 		await user.save();
 
 		res.status(200).json({ message: "Password reset successful" });
@@ -129,17 +105,19 @@ const changePass = async (req, res, next) => {
 const verifyOTP = async (req, res, next) => {
 	const { email, OTP } = req.body;
 	try {
+		authServices.validationRes(req);
+
 		console.log(OTP);
 		const isMatch = await otpModel.findOne({ email: email, otp: OTP });
 
 		if (!isMatch && OTP != '000000') customErr(422, "Wrong OTP!");
-		const user = await userModel.findOneAndUpdate({ email: email }, { verified: true }, { new: true });
+
+		const user = await userModel.findOneAndUpdate({ email: email }, { verified: true },
+			{ new: true })
 
 		if (!user) customErr(404, "user does not exists!");
 
-		const token = jwt.sign(
-			{ userId: user._id, role: user.role },
-			process.env.JWT_SECRET, { expiresIn: 60 * 60 * 24 * 7 });
+		const token = authServices.generateToken(user);
 
 		res.status(200).json({
 			user,
@@ -152,8 +130,7 @@ const verifyOTP = async (req, res, next) => {
 	}
 }
 
-
-// test api 
+// test api
 const getUsers = async (req, res, next) => {
 	try {
 		const users = await userModel.find();
@@ -168,5 +145,5 @@ const getUsers = async (req, res, next) => {
 
 
 module.exports = {
-	postSignup, postLogin, sendOTP, verifyOTP, forgetPass, changePass, getUsers
+	postSignup, postLogin, verifyOTP, forgetPass, changePass, getUsers
 };

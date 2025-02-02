@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 
 const userSchema = mongoose.Schema({
+	userPhoto: {
+		type: String,
+		default: 'image/userDefaultPhoto.jpg'
+	},
 	userName: {
 		type: String,
 		required: true,
@@ -25,9 +29,6 @@ const userSchema = mongoose.Schema({
 	password: {
 		type: String,
 		required: true,
-	},
-	myLearning: {
-
 	},
 	createdAt: {
 		type: Date,
