@@ -4,7 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 const coursesSchema = mongoose.Schema({
 	image: {
 		type: String,
-		default: 'image/defaultImage.jpg'
+		default: 'image/defaultImage.png'
 	},
 	title: {
 		type: String, required: true
@@ -15,7 +15,10 @@ const coursesSchema = mongoose.Schema({
 		type: String, required: true,
 	},
 	topic: {
-		type: String, required: true,
+		type: String, enum: {
+			values: ['software development', 'uiux design', 'cybersecurity', 'cloud computing', 'cloud computing'],
+			// message: 'Unknown course category'
+		}, required: true,
 	},
 	level: {
 		type: String, enum: {
