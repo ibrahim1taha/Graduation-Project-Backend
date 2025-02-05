@@ -3,6 +3,10 @@ const sessionsModel = require('../models/sessions');
 const customErr = require('../utils/customErr');
 const path = require('path');
 const CourseServices = require('../services/courseServices');
+const sharpImage = require('../utils/sharpImage');
+
+
+const defaultImageUrl = 'https://grad-proj-images.s3.eu-north-1.amazonaws.com/uploads/defaultImage.png';
 
 const courseController = {
 	// add course by instructor endPoint 
@@ -10,19 +14,23 @@ const courseController = {
 		try {
 
 			CourseServices.validateRequest(req);
-			let imageURl = 'image/defaultImage.png'
-			if (req.file)
-				imageURl = await CourseServices.handleFileUploaded(req.file);
-
+			let imageURl = defaultImageUrl
 			const { title, price, description, topic, level, sessions } = req.body;
 
-			const course = await courseModel.create({
-				image: imageURl, title: title, price: price, description: description, topic: topic
+			const course = new courseModel({
+				image: '', title: title, price: price, description: description, topic: topic
 				, level: level, instructor: req.userId
 			})
-
 			await CourseServices.createSessions(course._id, sessions);
 
+			if (req.file) {
+				// share image to 800 * 450 px 
+				const imageBuffer = await sharpImage(req.file.buffer, 800, 450);
+				imageURl = await CourseServices.handleFileUploaded(imageBuffer, req.file.originalname, req.file.mimetype);
+			}
+
+			course.image = imageURl;
+			await course.save();
 			res.status(201).json({
 				message: `course created successfully with ${sessions?.length || 0} session added`,
 			})
@@ -33,6 +41,69 @@ const courseController = {
 		}
 
 	},
+
+	updateCourse: async (req, res, next) => {
+		try {
+			// handle if the send updated sessions will update the course ;  
+			CourseServices.validateRequest(req);
+			const courseId = req.params.id;
+			CourseServices.validateObjectId(courseId);
+
+			let course = await courseModel.findById(courseId);
+			if (!course) customErr(404, 'course not found!');
+
+			const { title, price, type, level, description, sessions } = req.body;
+
+			course.title = title;
+			course.price = price;
+			course.type = type;
+			course.level = level;
+			course.description = description;
+
+			await CourseServices.createSessions(course._id, sessions);
+
+			if (req.file) {
+				if (course.image != defaultImageUrl)
+					await CourseServices.deleteImageFromS3(course.image);
+
+				const imageBuffer = await sharpImage(req.file.buffer, 800, 450)
+
+				course.image = await CourseServices.handleFileUploaded(imageBuffer, req.file.originalname, req.file.mimetype);
+			}
+
+			await course.save();
+
+			res.status(201).json({
+				message: 'course updated successfully'
+			})
+
+		} catch (err) {
+			next(err);
+		}
+
+	},
+
+	deleteCourses: async (req, res, next) => {
+		try {
+			const id = req.params.id;
+			CourseServices.validateObjectId(id);
+
+			const course = await courseModel.findByIdAndDelete({ _id: id });
+			if (!course) customErr(404, 'Course not found!');
+
+			// validate the image not the default one 
+			if (course.image != defaultImageUrl)
+				await CourseServices.deleteImageFromS3(course.image);
+
+			await CourseServices.deleteCourseSessions(course._id);
+
+			res.status(200).json({ message: "course deleted successfully" });
+
+		} catch (err) {
+			next(err);
+		}
+	},
+
 	// retrieve home page course grouped by types and "recommended for u" category
 	// /courses/popular
 	getPopularCourses: async (req, res, next) => {
@@ -78,81 +149,24 @@ const courseController = {
 		}
 	},
 
-	deleteCourses: async (req, res, next) => {
-		try {
-			const id = req.params.id;
-			CourseServices.validateObjectId(id);
+	// dltAllCoursesWithImgs: async (req, res, next) => {
+	// 	try {
 
-			const course = await courseModel.findByIdAndDelete({ _id: id });
-			if (!course) customErr(404, 'Course not found!');
+	// 		const courses = await courseModel.find({});
+	// 		if (!courses) customErr(404, 'Course not found!');
 
-			const imageID = path.basename(course.image);
-			console.log(imageID);
+	// 		courses.map(async course => {
+	// 			const imageID = path.basename(course.image);
+	// 			await courseModel.deleteOne(course._id);
+	// 			if (imageID != 'defaultImage.png') await CourseServices.deleteCourseImage(imageID);
+	// 		})
 
-			await CourseServices.deleteCourseImage(imageID);
-			res.status(200).json({ message: "course deleted successfully" });
+	// 		res.status(200).json({ message: "All courses deleted!" });
 
-		} catch (err) {
-			next(err);
-		}
-	},
-
-	updateCourse: async (req, res, next) => {
-		try {
-			CourseServices.validateRequest(req);
-			const courseId = req.params.id;
-			CourseServices.validateObjectId(courseId);
-
-			let course = await courseModel.findById(courseId);
-			if (!course) customErr(404, 'course not found!');
-
-			const oldImageId = path.basename(course.image);
-
-			const { title, price, type, level, description, sessions } = req.body;
-
-			let newImageUrl;
-			if (req.file) {
-				if (oldImageId != 'defaultImage.png') await CourseServices.deleteCourseImage(oldImageId);
-				newImageUrl = await CourseServices.handleFileUploaded(req.file);
-				course.image = newImageUrl;
-			}
-			course.title = title;
-			course.price = price;
-			course.type = type;
-			course.level = level;
-			course.description = description;
-
-			await CourseServices.createSessions(courseId, sessions);
-
-			await course.save();
-
-			res.status(201).json({
-				message: 'course updated successfully'
-			})
-		} catch (err) {
-			next(err);
-		}
-
-	},
-
-	dltAllCoursesWithImgs: async (req, res, next) => {
-		try {
-
-			const courses = await courseModel.find({});
-			if (!courses) customErr(404, 'Course not found!');
-
-			courses.map(async course => {
-				const imageID = path.basename(course.image);
-				await courseModel.deleteOne(course._id);
-				if (imageID != 'defaultImage.png') await CourseServices.deleteCourseImage(imageID);
-			})
-
-			res.status(200).json({ message: "All courses deleted" });
-
-		} catch (err) {
-			next(err);
-		}
-	},
+	// 	} catch (err) {
+	// 		next(err);
+	// 	}
+	// },
 }
 
 module.exports = courseController; 
