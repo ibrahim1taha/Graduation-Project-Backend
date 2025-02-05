@@ -6,6 +6,9 @@ const sessionsModel = require('../models/sessions');
 const { validationResult } = require('express-validator');
 const customErr = require('../utils/customErr');
 const mongoose = require('mongoose');
+const s3 = require('../config/s3Configuration');
+const { PutObjectCommand } = require('@aws-sdk/client-s3');
+const { DeleteObjectCommand } = require('@aws-sdk/client-s3');
 
 const courseDocIgnoredItems = {
 	trainees: 0, sessions: 0, _id: 0, createdAt: 0
@@ -13,51 +16,84 @@ const courseDocIgnoredItems = {
 }
 
 class CourseServices {
+
 	static validateRequest(req) {
 		const validationErr = validationResult(req).array();
 		if (validationErr.length > 0) customErr(422, validationErr);
 	}
+
 	static validateObjectId(id) {
 		if (!mongoose.Types.ObjectId.isValid(id)) {
 			customErr(422, 'ID not Valid!')
 		}
 	};
 
-	static async handleFileUploaded(file) {
+	static async handleFileUploaded(fileBuffer, fileName, mimeType) {
+		const S3_BUCKET_NAME = 'grad-proj-images'
+		const AWS_REGION = 'eu-north-1';
+		const format = mimeType.split('/')[1];
 
-		let imageURl = 'image/defaultImage.jpg';
-		let uploadDir, fileName, filePath;
-
-		if (!file) return imageURl;
-
-		if (file.size > 1024 * 1024) {
-			customErr(422, [{ "path": "image", msg: 'The image is too large . Image size must be less than 1MB' }]);
+		const params = {
+			Bucket: S3_BUCKET_NAME,
+			Key: `uploads/${Date.now()}.${format}`, // Store in 'uploads/' folder in S3
+			Body: fileBuffer,
+			ContentType: mimeType,
+			ACL: "public-read",
 		}
+
+		await s3.send(new PutObjectCommand(params));
+		return `https://${S3_BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/${params.Key}`;
+	}
+
+
+	static async deleteImageFromS3(key) {
+		const S3_BUCKET_NAME = 'grad-proj-images'
+		if (!key) {
+			throw new Error('Invalid or missing S3 object key');
+		}
+
+		const url = new URL(key);
+		const Key = url.pathname.substring(1);
+
 		try {
-			uploadDir = path.join(__dirname, '../public/images');
-			fileName = uuidv4() + file.originalname;
-			filePath = path.join(uploadDir, fileName);
-			imageURl = 'image/' + fileName;
-			await fs.promises.writeFile(filePath, file.buffer);
+			const params = {
+				Bucket: S3_BUCKET_NAME,
+				Key: Key
+			}
 
-			return imageURl;
+			const command = new DeleteObjectCommand(params);
 
+			await s3.send(command);
 		} catch (err) {
-			customErr(500, [{ "path": "image", msg: 'An error occurred while uploading the image' }]);
+			throw new Error(`Error deleting object from S3`);
 		}
 	}
 
 	static async createSessions(courseId, sessions) {
 		try {
+			// console.log(courseId + " ||||| " + sessions);
+			// sessions = await JSON.parse(sessions);
 			if (!Array.isArray(sessions) || sessions.length === 0) {
 				return;
 			}
 			const sessionsPromises = sessions.map(session => {
-				sessionsModel.create({ course: courseId, title: session.title, startDate: session.startDate })
+				sessionsModel.create({ courseId: courseId, title: session.title, startDate: session.startDate })
 			})
 			await Promise.all(sessionsPromises);
+			console.log(courseId + " ||||| " + sessions[0].title);
 		} catch (err) {
 			throw new Error("Failed to add session!")
+		}
+	}
+
+	static async deleteCourseSessions(courseId) {
+		try {
+			this.validateObjectId(courseId);
+
+			await sessionsModel.deleteMany({ courseId: courseId });
+
+		} catch (err) {
+			throw new Error('Something went wrong while deleting sessions!');
 		}
 	}
 
@@ -149,21 +185,7 @@ class CourseServices {
 		return homeData;
 	}
 
-	static async deleteCourseImage(imageID) {
-		let imagePath = path.join(__dirname, '../public/images');
-		try {
-			imagePath = imagePath + path.sep + imageID;
-			console.log(imagePath);
 
-			await fs.promises.access(imagePath, fs.constants.F_OK);
-
-			await fs.promises.unlink(imagePath);
-
-			console.log('Image deleted successfully');
-		} catch (err) {
-			throw new Error(`Image not found`);
-		}
-	}
 }
 
 

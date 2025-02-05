@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const sessionsSchema = mongoose.Schema({
-	course: {
+	courseId: {
 		type: mongoose.Types.ObjectId, ref: 'courses', required: true
 	},
 
@@ -12,7 +12,7 @@ const sessionsSchema = mongoose.Schema({
 	attendance: [{ type: mongoose.Types.ObjectId, ref: 'users' }],
 }, { timestamps: true })
 
-sessionsSchema.index({ course: 1 });
+sessionsSchema.index({ courseId: 1 });
 
 
 module.exports = mongoose.model('sessions', sessionsSchema);

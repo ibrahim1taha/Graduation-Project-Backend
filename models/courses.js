@@ -4,7 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 const coursesSchema = mongoose.Schema({
 	image: {
 		type: String,
-		default: 'image/defaultImage.png'
+		// default: 'image/defaultImage.png'
 	},
 	title: {
 		type: String, required: true
