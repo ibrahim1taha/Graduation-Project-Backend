@@ -9,6 +9,7 @@ const mongoose = require('mongoose');
 const s3 = require('../config/s3Configuration');
 const { PutObjectCommand } = require('@aws-sdk/client-s3');
 const { DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const { Upload } = require('@aws-sdk/lib-storage');
 
 const courseDocIgnoredItems = {
 	trainees: 0, sessions: 0, _id: 0, createdAt: 0
@@ -41,7 +42,13 @@ class CourseServices {
 			ACL: "public-read",
 		}
 
-		await s3.send(new PutObjectCommand(params));
+		const upload = new Upload({
+			client: s3,
+			params: params
+		})
+
+		await upload.done();
+		// await s3.send(new PutObjectCommand(params));
 		return `https://${S3_BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/${params.Key}`;
 	}
 
