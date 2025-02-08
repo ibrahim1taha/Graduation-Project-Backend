@@ -4,13 +4,16 @@ const customErr = require('../utils/customErr');
 const path = require('path');
 const CourseServices = require('../services/courseServices');
 const sharpImage = require('../utils/sharpImage');
-
+const mongoose = require('mongoose');
+const isAuth = require('../middlewares/isAuth');
 
 const defaultImageUrl = 'https://grad-proj-images.s3.eu-north-1.amazonaws.com/uploads/defaultImage.png';
 
 const courseController = {
 	// add course by instructor endPoint 
 	addCourse: async (req, res, next) => {
+		const session = await mongoose.startSession();
+		session.startTransaction();
 		try {
 
 			CourseServices.validateRequest(req);
@@ -21,21 +24,29 @@ const courseController = {
 				image: '', title: title, price: price, description: description, topic: topic
 				, level: level, instructor: req.userId
 			})
-			await CourseServices.createSessions(course._id, sessions);
+			await CourseServices.createSessions(course._id, sessions, session);
+
 
 			if (req.file) {
+				if (req.file.size > (1024 * 1024)) customErr(422, 'Maximum image size is 1MB');
 				// share image to 800 * 450 px 
 				const imageBuffer = await sharpImage(req.file.buffer, 800, 450);
 				imageURl = await CourseServices.handleFileUploaded(imageBuffer, req.file.originalname, req.file.mimetype);
 			}
-
 			course.image = imageURl;
-			await course.save();
+			// throw new Error("error ghatata");
+			await course.save({ session });
+
+			await session.commitTransaction();
+			session.endSession();
+
 			res.status(201).json({
 				message: `course created successfully with ${sessions?.length || 0} session added`,
 			})
 
 		} catch (err) {
+			await session.abortTransaction();
+			session.endSession();
 			console.log(err);
 			next(err);
 		}
@@ -43,14 +54,18 @@ const courseController = {
 	},
 
 	updateCourse: async (req, res, next) => {
+		const session = await mongoose.startSession();
+		session.startTransaction();
 		try {
-			// handle if the send updated sessions will update the course ;  
+			// handle if send updated sessions will update the course ;  
 			CourseServices.validateRequest(req);
 			const courseId = req.params.id;
 			CourseServices.validateObjectId(courseId);
 
-			let course = await courseModel.findById(courseId);
+			let course = await courseModel.findById(courseId).session(session);
 			if (!course) customErr(404, 'course not found!');
+			// check if has access to update (the course maker )
+			isAuth.isHaveAccess(course.instructor, req.userId);
 
 			const { title, price, type, level, description, sessions } = req.body;
 
@@ -60,46 +75,59 @@ const courseController = {
 			course.level = level;
 			course.description = description;
 
-			await CourseServices.createSessions(course._id, sessions);
+			const bulkRes = await CourseServices.putSessions(course._id, sessions, session);
 
 			if (req.file) {
 				if (course.image != defaultImageUrl)
 					await CourseServices.deleteImageFromS3(course.image);
 
+				if (req.file.size > (1024 * 1024)) customErr(422, 'Maximum image size is 1MB');
 				const imageBuffer = await sharpImage(req.file.buffer, 800, 450)
 
 				course.image = await CourseServices.handleFileUploaded(imageBuffer, req.file.originalname, req.file.mimetype);
 			}
 
-			await course.save();
+			await course.save({ session });
+			await session.commitTransaction();
+			session.endSession();
 
 			res.status(201).json({
-				message: 'course updated successfully'
+				message: `Course updated successfully with sessions status: (${bulkRes.updatedCount} Updated - ${bulkRes.insertedCount} added - ${bulkRes.deletedCount} deleted)`
 			})
 
 		} catch (err) {
+			console.log(err);
+			await session.abortTransaction();
+			session.endSession();
 			next(err);
 		}
 
 	},
 
 	deleteCourses: async (req, res, next) => {
+		const session = await mongoose.startSession();
+		session.startTransaction();
 		try {
 			const id = req.params.id;
 			CourseServices.validateObjectId(id);
 
-			const course = await courseModel.findByIdAndDelete({ _id: id });
+			const course = await courseModel.findByIdAndDelete({ _id: id }, { session: session });
 			if (!course) customErr(404, 'Course not found!');
 
+			isAuth.isHaveAccess(course.instructor, req.userId);
 			// validate the image not the default one 
 			if (course.image != defaultImageUrl)
 				await CourseServices.deleteImageFromS3(course.image);
 
-			await CourseServices.deleteCourseSessions(course._id);
+			await CourseServices.deleteCourseSessions(course._id, session);
 
+			await session.commitTransaction();
+			session.endSession();
 			res.status(200).json({ message: "course deleted successfully" });
 
 		} catch (err) {
+			await session.abortTransaction();
+			session.endSession();
 			next(err);
 		}
 	},

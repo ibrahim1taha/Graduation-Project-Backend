@@ -12,7 +12,9 @@ router.post('/addCourse', isAuth.authorized, isAuth.isInstructor
 	, courseController.addCourse);
 
 // delete course end point 
-router.delete('/delete/:id', isAuth.authorized, isAuth.isInstructor, courseController.deleteCourses)
+router.delete('/delete/:id',
+	isAuth.authorized, isAuth.isInstructor,
+	courseController.deleteCourses)
 // Update course end point 
 router.put('/update/:id', isAuth.authorized, isAuth.isInstructor
 	, uploaded.single('image')
@@ -28,5 +30,5 @@ router.get('/homeDate', courseController.getHomeData);
 
 
 // test api --- delete all courses with there images 
-// router.delete('/deleteAll/testApiWithIbrahimTaha', courseController.dltAllCoursesWithImgs)
+// router.delete('/deleteAll/testApi', courseController.dltAllCoursesWithImgs)
 module.exports = router; 
