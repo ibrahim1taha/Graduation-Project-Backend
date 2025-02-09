@@ -10,31 +10,31 @@ const isAuth = require('../middlewares/isAuth');
 const defaultImageUrl = 'https://grad-proj-images.s3.eu-north-1.amazonaws.com/uploads/defaultImage.png';
 
 const courseController = {
-	// add course by instructor endPoint 
+	// add course by instructor endPoint
 	addCourse: async (req, res, next) => {
 		const session = await mongoose.startSession();
 		session.startTransaction();
 		try {
 
-			CourseServices.validateRequest(req);
+			CourseServices.validateRequest(req); // send error as array 422
 			let imageURl = defaultImageUrl
 			const { title, price, description, topic, level, sessions } = req.body;
 
 			const course = new courseModel({
 				image: '', title: title, price: price, description: description, topic: topic
-				, level: level, instructor: req.userId
+				, level: level, instructor: req.userId, sessionsCount: sessions.length
 			})
+
 			await CourseServices.createSessions(course._id, sessions, session);
 
-
 			if (req.file) {
-				if (req.file.size > (1024 * 1024)) customErr(422, 'Maximum image size is 1MB');
+				if (req.file.size > (1024 * 1024)) customErr(422, 'Maximum image size is 1MB', 'image'); // send as string 422 
 				// share image to 800 * 450 px 
 				const imageBuffer = await sharpImage(req.file.buffer, 800, 450);
 				imageURl = await CourseServices.handleFileUploaded(imageBuffer, req.file.originalname, req.file.mimetype);
 			}
 			course.image = imageURl;
-			// throw new Error("error ghatata");
+
 			await course.save({ session });
 
 			await session.commitTransaction();
@@ -77,21 +77,25 @@ const courseController = {
 
 			const bulkRes = await CourseServices.putSessions(course._id, sessions, session);
 
+			course.sessionsCount = bulkRes.insertedCount + bulkRes.updatedCount;
+
 			if (req.file) {
 				if (course.image != defaultImageUrl)
 					await CourseServices.deleteImageFromS3(course.image);
 
-				if (req.file.size > (1024 * 1024)) customErr(422, 'Maximum image size is 1MB');
+				if (req.file.size > (1024 * 1024)) customErr(422, 'Maximum image size is 1MB', 'image');
 				const imageBuffer = await sharpImage(req.file.buffer, 800, 450)
 
 				course.image = await CourseServices.handleFileUploaded(imageBuffer, req.file.originalname, req.file.mimetype);
 			}
 
 			await course.save({ session });
+
 			await session.commitTransaction();
 			session.endSession();
 
 			res.status(201).json({
+				status: 200,
 				message: `Course updated successfully with sessions status: (${bulkRes.updatedCount} Updated - ${bulkRes.insertedCount} added - ${bulkRes.deletedCount} deleted)`
 			})
 

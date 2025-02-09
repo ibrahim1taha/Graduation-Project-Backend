@@ -36,6 +36,9 @@ const coursesSchema = mongoose.Schema({
 	sessions: [{
 		type: mongoose.Schema.Types.ObjectId, ref: 'sessions'
 	}],
+	sessionsCount: {
+		type: Number, default: 0
+	},
 	enrollmentCount: {
 		type: Number,
 		default: 0

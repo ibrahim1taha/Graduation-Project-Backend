@@ -37,7 +37,7 @@ const postLogin = async (req, res, next) => {
 		authServices.validationRes(req);
 
 		const user = await userModel.findOne({ email });
-		if (!user) customErr(422, "Invalid Email or Password!")
+		if (!user) customErr(422, "User not found , please sign")
 
 		const correctCredentials = await authServices.decodePassword(password, user)
 		if (!correctCredentials)
@@ -69,7 +69,7 @@ const forgetPass = async (req, res, next) => {
 		authServices.validationRes(req);
 		const user = await userModel.findOne({ email });
 
-		if (!user) customErr(404, "this user not found , please Signup");
+		if (!user) customErr(404, "this user not found , please signup");
 
 		authServices.sendOTP(user);
 
@@ -115,7 +115,7 @@ const verifyOTP = async (req, res, next) => {
 		const user = await userModel.findOneAndUpdate({ email: email }, { verified: true },
 			{ new: true })
 
-		if (!user) customErr(404, "user does not exists!");
+		if (!user) customErr(404, "user does not exists! , please signup");
 
 		const token = authServices.generateToken(user);
 

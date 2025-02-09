@@ -19,7 +19,8 @@ class CourseServices {
 
 	static validateRequest(req) {
 		const validationErr = validationResult(req).array();
-		if (validationErr.length > 0) customErr(422, validationErr);
+		console.log(validationErr);
+		if (validationErr.length > 0) customErr(422, validationErr[0].msg, validationErr[0].path);
 	}
 
 	static validateObjectId(id) {
@@ -205,7 +206,7 @@ class CourseServices {
 			from: 'users', localField: 'instructor', foreignField: '_id', as: 'instructor'
 		}).unwind("instructor")
 			.project({
-				image: 1, title: 1, price: 1, topic: 1, level: 1, enrollmentCount: 1, createdAt: 1,
+				image: 1, title: 1, price: 1, topic: 1, level: 1, enrollmentCount: 1, sessionsCount: 1,
 				instructor: {
 					userPhoto: "$instructor.userPhoto",
 					userName: "$instructor.userName"
@@ -228,7 +229,8 @@ class CourseServices {
 								$push: {
 									_id: "$_id", image: "$image", title: "$title", price: "$price",
 									topic: "$topic", level: "$level",
-									instructor: "$instructor", enrollmentCount: "$enrollmentCount"
+									instructor: "$instructor", enrollmentCount: "$enrollmentCount",
+									sessionsCount: "$sessionsCount"
 								}
 							}
 						}
