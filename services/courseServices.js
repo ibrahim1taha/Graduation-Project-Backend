@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const { v4: uuidv4 } = require('uuid');
 const courseModel = require('../models/courses');
 const sessionsModel = require('../models/sessions');
 const { validationResult } = require('express-validator');
@@ -20,7 +19,8 @@ class CourseServices {
 
 	static validateRequest(req) {
 		const validationErr = validationResult(req).array();
-		if (validationErr.length > 0) customErr(422, validationErr);
+		console.log(validationErr);
+		if (validationErr.length > 0) customErr(422, validationErr[0].msg, validationErr[0].path);
 	}
 
 	static validateObjectId(id) {
@@ -30,26 +30,31 @@ class CourseServices {
 	};
 
 	static async handleFileUploaded(fileBuffer, fileName, mimeType) {
-		const S3_BUCKET_NAME = 'grad-proj-images'
-		const AWS_REGION = 'eu-north-1';
-		const format = mimeType.split('/')[1];
+		try {
+			const S3_BUCKET_NAME = 'grad-proj-images'
+			const AWS_REGION = 'eu-north-1';
+			const format = mimeType.split('/')[1];
 
-		const params = {
-			Bucket: S3_BUCKET_NAME,
-			Key: `uploads/${Date.now()}.${format}`, // Store in 'uploads/' folder in S3
-			Body: fileBuffer,
-			ContentType: mimeType,
-			ACL: "public-read",
+			const params = {
+				Bucket: S3_BUCKET_NAME,
+				Key: `uploads/${Date.now()}.${format}`, // Store in 'uploads/' folder in S3
+				Body: fileBuffer,
+				ContentType: mimeType,
+				ACL: "public-read",
+			}
+
+			const upload = new Upload({
+				client: s3,
+				params: params
+			})
+
+			await upload.done();
+			// await s3.send(new PutObjectCommand(params));
+			return `https://${S3_BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/${params.Key}`;
+		} catch (err) {
+			throw new Error('Something went wrong while uploading the image')
 		}
 
-		const upload = new Upload({
-			client: s3,
-			params: params
-		})
-
-		await upload.done();
-		// await s3.send(new PutObjectCommand(params));
-		return `https://${S3_BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/${params.Key}`;
 	}
 
 
@@ -76,28 +81,77 @@ class CourseServices {
 		}
 	}
 
-	static async createSessions(courseId, sessions) {
+	static async createSessions(courseId, sessions, session) {
 		try {
-			// console.log(courseId + " ||||| " + sessions);
-			// sessions = await JSON.parse(sessions);
+
 			if (!Array.isArray(sessions) || sessions.length === 0) {
 				return;
 			}
-			const sessionsPromises = sessions.map(session => {
-				sessionsModel.create({ courseId: courseId, title: session.title, startDate: session.startDate })
-			})
-			await Promise.all(sessionsPromises);
-			console.log(courseId + " ||||| " + sessions[0].title);
+
+			const sessionsData = sessions.map(sessionDoc => ({
+				courseId: courseId
+				, title: sessionDoc.title,
+				startDate: sessionDoc.startDate
+			}));
+
+			await sessionsModel.insertMany(sessionsData, { session });
+
 		} catch (err) {
 			throw new Error("Failed to add session!")
 		}
 	}
+	// create or update session on update course endpoint 
+	static async putSessions(courseId, sessions, transactionsSession) {
+		try {
+			if (!Array.isArray(sessions)) {
+				return { updatedCount: 0, insertedCount: 0, deletedCount: 0 };
+			}
 
-	static async deleteCourseSessions(courseId) {
+			const existingCourseSessions = await sessionsModel.find({ courseId: courseId });
+
+			const updatedSessions = [];
+
+			const updatedSessionsArr = sessions.map(session => {
+				if (session._id) {
+					updatedSessions.push(session._id);
+					return {
+						updateOne: {
+							filter: { _id: session._id },
+							update: { title: session.title, startDate: session.startDate }
+						}
+					}
+				} else {
+					return {
+						insertOne: {
+							document: { courseId: courseId, ...session }
+						}
+					};
+				}
+			})
+
+			const bulkRes = await sessionsModel.bulkWrite(updatedSessionsArr, { session: transactionsSession });
+
+			const sessionsToDelete = existingCourseSessions.filter(
+				session => !updatedSessions.includes(session._id.toString()
+				)).map(session =>
+					session._id.toString()
+				);
+
+			if (sessionsToDelete.length > 0)
+				await sessionsModel.deleteMany({ _id: { $in: sessionsToDelete } }, { session: transactionsSession });
+
+			return { updatedCount: bulkRes.modifiedCount, insertedCount: bulkRes.insertedCount, deletedCount: sessionsToDelete.length }
+		} catch (err) {
+			console.log(err);
+			throw new Error("Failed to update sessions!")
+		}
+	}
+
+	static async deleteCourseSessions(courseId, session) {
 		try {
 			this.validateObjectId(courseId);
 
-			await sessionsModel.deleteMany({ courseId: courseId });
+			await sessionsModel.deleteMany({ courseId: courseId }, { session: session });
 
 		} catch (err) {
 			throw new Error('Something went wrong while deleting sessions!');
@@ -152,7 +206,7 @@ class CourseServices {
 			from: 'users', localField: 'instructor', foreignField: '_id', as: 'instructor'
 		}).unwind("instructor")
 			.project({
-				image: 1, title: 1, price: 1, topic: 1, level: 1, enrollmentCount: 1, createdAt: 1,
+				image: 1, title: 1, price: 1, topic: 1, level: 1, enrollmentCount: 1, sessionsCount: 1,
 				instructor: {
 					userPhoto: "$instructor.userPhoto",
 					userName: "$instructor.userName"
@@ -175,7 +229,8 @@ class CourseServices {
 								$push: {
 									_id: "$_id", image: "$image", title: "$title", price: "$price",
 									topic: "$topic", level: "$level",
-									instructor: "$instructor", enrollmentCount: "$enrollmentCount"
+									instructor: "$instructor", enrollmentCount: "$enrollmentCount",
+									sessionsCount: "$sessionsCount"
 								}
 							}
 						}

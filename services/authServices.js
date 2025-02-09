@@ -8,7 +8,7 @@ const sendOTPEmail = require('../utils/sendOTPEmail');
 class AuthServices {
 	static validationRes = (req) => {
 		const validationErr = validationResult(req);
-		if (!validationErr.isEmpty()) customErr(422, validationErr.array()[0].msg)
+		if (!validationErr.isEmpty()) customErr(422, validationErr.array()[0].msg, validationErr.array()[0].path)
 	}
 
 	static generateToken = (user) => {
