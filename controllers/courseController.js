@@ -1,5 +1,6 @@
 const courseModel = require('../models/courses');
 const sessionsModel = require('../models/sessions');
+const userModel = require('../models/users');
 const customErr = require('../utils/customErr');
 const path = require('path');
 const CourseServices = require('../services/courseServices');
@@ -136,41 +137,6 @@ const courseController = {
 		}
 	},
 
-	// retrieve home page course grouped by types and "recommended for u" category
-	// /courses/popular
-	getPopularCourses: async (req, res, next) => {
-		try {
-			const popCourses = await CourseServices.getCourses({}, { enrollmentCount: -1 }, 5);
-			res.status(200).json(popCourses);
-		} catch (err) {
-			next(err);
-		}
-	},
-
-	// courses/new 
-	getNewCourses: async (req, res, next) => {
-		try {
-			const newCourses = await CourseServices.getCourses({}, { createdAt: -1 }, 5);
-			res.status(200).json(newCourses);
-		} catch (err) {
-			next(err);
-		}
-	},
-
-	// courses/topics // get courses grouped by topics 
-	getCoursesWithTopics: async (req, res, next) => {
-		try {
-			const topics = await CourseServices.getCoursesGroupedByTopic();
-
-			if (!topics || topics.length === 0) customErr(404, 'something went wrong , no courses found!');
-
-			res.status(200).json(topics);
-
-		} catch (err) {
-			next(err);
-		}
-	},
-
 	getHomeData: async (req, res, next) => {
 		try {
 			const homeData = await CourseServices.getHomeDatePipelines();
@@ -180,6 +146,127 @@ const courseController = {
 			next(err);
 		}
 	},
+
+	getTopicCourses: async (req, res, next) => {
+		try {
+			const topic = req.params.topic;
+			const page = req.query.page || 0;
+			const courses = await CourseServices.getCourses(
+				{ topic: topic },
+				{ enrollmentCount: -1, createdAt: -1 },
+				16 * page, // skip 16 course 
+				16 // take only 16 course
+			)
+
+			res.status(200).json(courses);
+		} catch (err) {
+			console.log(err);
+			next(err);
+		}
+	},
+
+	getMyCourses: async (req, res, next) => {
+		try {
+			const courses = await courseModel.find(
+				{ instructor: req.userId },
+				{ trainees: 0, sessions: 0, createdAt: 0, updatedAt: 0 }
+			);
+
+			if (!courses) customErr(404, "Not found!");
+
+			res.status(200).json(courses);
+		} catch (err) {
+			console.log(err);
+			next(err);
+		}
+	},
+
+	getMyLearning: async (req, res, next) => {
+
+		try {
+			const courses = await CourseServices.getJoinedCoursesPipelines(req.userId);
+			if (!courses) customErr(404, 'Not found!');
+
+			res.status(200).json(courses);
+		} catch (err) {
+			console.log(err);
+			next(err);
+		}
+	},
+
+	joinCourse: async (req, res, next) => {
+		const courseId = req.params.courseId;
+		const { courseCode } = req.body;
+		try {
+			if (!courseId || !courseCode) customErr(400, 'Course ID and course code are required.');
+
+			const [user, course] = await Promise.all([
+				userModel.findById(req.userId).exec(),
+				courseModel.findById(courseId).exec()
+			])
+
+			if (!user) customErr(404, 'user not found! ');
+			if (!course) customErr(404, 'course not found!');
+
+			if (course.courseCode !== courseCode) customErr(422, 'invalid code!');
+
+			const isJoined = user.myLearningIds.some(doc => doc.courseId && doc.courseId.toString() === courseId);
+			if (isJoined) customErr(422, 'You are already joined the course!');
+
+			user.myLearningIds.push({ courseId: course._id });
+			course.enrollmentCount += 1;
+
+			await Promise.all([
+				user.save(),
+				course.save()
+			])
+
+			res.status(201).json({
+				message: 'Congratulations, you have successfully joined the course!'
+			})
+
+		} catch (err) {
+			console.log(err);
+			next(err);
+		}
+	},
+
+
+	// retrieve home page course grouped by types and "recommended for u" category
+	// /courses/popular
+	// getPopularCourses: async (req, res, next) => {
+	// 	try {
+	// 		const popCourses = await CourseServices.getCourses({}, { enrollmentCount: -1 }, 5);
+	// 		res.status(200).json(popCourses);
+	// 	} catch (err) {
+	// 		next(err);
+	// 	}
+	// },
+
+	// // courses/new 
+	// getNewCourses: async (req, res, next) => {
+	// 	try {
+	// 		const newCourses = await CourseServices.getCourses({}, { createdAt: -1 }, 5);
+	// 		res.status(200).json(newCourses);
+	// 	} catch (err) {
+	// 		next(err);
+	// 	}
+	// },
+
+	// // courses/topics // get courses grouped by topics 
+	// getCoursesWithTopics: async (req, res, next) => {
+	// 	try {
+	// 		const topics = await CourseServices.getCoursesGroupedByTopic();
+
+	// 		if (!topics || topics.length === 0) customErr(404, 'something went wrong , no courses found!');
+
+	// 		res.status(200).json(topics);
+
+	// 	} catch (err) {
+	// 		next(err);
+	// 	}
+	// },
+
 
 	// dltAllCoursesWithImgs: async (req, res, next) => {
 	// 	try {

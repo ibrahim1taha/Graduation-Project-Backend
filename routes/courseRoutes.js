@@ -22,13 +22,30 @@ router.put('/update/:id', isAuth.authorized, isAuth.isInstructor
 	, courseController.updateCourse);
 
 // many get for HOME API (not in use)
-router.get('/popular', courseController.getPopularCourses);
-router.get('/new', courseController.getNewCourses);
-router.get('/topics', courseController.getCoursesWithTopics);
+// router.get('/popular', courseController.getPopularCourses);
+// router.get('/new', courseController.getNewCourses);
+// router.get('/topics', courseController.getCoursesWithTopics);
+
 // single api for Home page 
 router.get('/homeDate', courseController.getHomeData);
 
+//get topic after click see all from home page , 
+router.get('/topic/:topic', courseController.getTopicCourses);
 
-// test api --- delete all courses with there images 
+// courses/MyCourses
+router.get('/MyCourses',
+	isAuth.authorized, isAuth.isInstructor,
+	courseController.getMyCourses);
+
+// courses/MyLearning
+router.get('/MyLearning',
+	isAuth.authorized,
+	courseController.getMyLearning);
+
+// join course 
+router.post('/join/:courseId', isAuth.authorized, courseController.joinCourse)
+
+
+// test api --- delete all courses with there images
 // router.delete('/deleteAll/testApi', courseController.dltAllCoursesWithImgs)
 module.exports = router; 

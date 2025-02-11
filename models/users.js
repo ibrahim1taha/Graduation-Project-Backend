@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const userSchema = mongoose.Schema({
 	userPhoto: {
 		type: String,
-		default: 'image/userDefaultPhoto.jpg'
+		default: 'https://grad-proj-images.s3.eu-north-1.amazonaws.com/profile/defaultProfile.png'
 	},
 	userName: {
 		type: String,
@@ -30,6 +30,10 @@ const userSchema = mongoose.Schema({
 		type: String,
 		required: true,
 	},
+	myLearningIds: [{
+		courseId: { type: mongoose.Types.ObjectId, required: true, ref: 'courses' },
+		joinedAt: { type: Date, default: Date.now },
+	}],
 	createdAt: {
 		type: Date,
 		default: Date.now
