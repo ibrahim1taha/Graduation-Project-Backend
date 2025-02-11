@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const courseModel = require('../models/courses');
+const userModel = require('../models/users');
 const sessionsModel = require('../models/sessions');
 const { validationResult } = require('express-validator');
 const customErr = require('../utils/customErr');
@@ -12,9 +13,10 @@ const { Upload } = require('@aws-sdk/lib-storage');
 
 const courseDocIgnoredItems = {
 	trainees: 0, sessions: 0, _id: 0, createdAt: 0
-	, updatedAt: 0, enrollmentCount: 0, courseCode: 0
+	, updatedAt: 0
 }
 
+const currentDate = new Date();
 class CourseServices {
 
 	static validateRequest(req) {
@@ -158,47 +160,14 @@ class CourseServices {
 		}
 	}
 
-	static async getCourses(query, sortOption, limit) {
+	static async getCourses(query, sortOption, skip, limit) {
 		const Courses = await courseModel.find(query, courseDocIgnoredItems)
 			.populate('instructor', 'userPhoto userName')
 			.sort(sortOption)
+			.skip(skip)
 			.limit(limit);
-		if (!Courses || Courses.length === 0) customErr(404, 'something went wrong , no courses found!');
+		if (!Courses) customErr(404, 'something went wrong , no courses found!');
 		return Courses;
-	}
-
-
-	static async getCoursesGroupedByTopic() {
-		const topics = await courseModel.aggregate()
-			.sort({ enrollmentCount: -1, createdAt: -1 })
-			.lookup({
-				from: 'users',
-				localField: 'instructor',
-				foreignField: "_id",
-				as: "instructor"
-			})
-			.unwind("instructor")
-			.project({
-				image: 1, title: 1, price: 1, topic: 1, level: 1,
-				instructor: {
-					userPhoto: "$instructor.userPhoto",
-					userName: "$instructor.userName"
-				}
-			})
-			.group({
-				_id: "$topic",
-				courses: {
-					$push: {
-						image: "$image", title: "$title", price: "$price",
-						topic: "$topic", level: "$level", instructor: "$instructor"
-					},
-				}
-			}).project({
-				_id: 0,
-				category: "$_id",
-				courses: { $slice: ["$courses", 5] }
-			})
-		return topics
 	}
 
 	static async getHomeDatePipelines() {
@@ -214,11 +183,11 @@ class CourseServices {
 			}).facet({
 				mostPopular: [
 					{ $sort: { enrollmentCount: -1 } },
-					{ $limit: 5 },
+					{ $limit: 10 },
 				],
 				mostNew: [
 					{ $sort: { createdAt: -1 } },
-					{ $limit: 5 }
+					{ $limit: 10 }
 				],
 				categories: [
 					{ $sort: { enrollmentCount: -1, createdAt: -1 } },
@@ -227,8 +196,8 @@ class CourseServices {
 							_id: "$topic",
 							courses: {
 								$push: {
-									_id: "$_id", image: "$image", title: "$title", price: "$price",
-									topic: "$topic", level: "$level",
+									_id: "$_id", image: "$image", title: "$title",
+									price: "$price", topic: "$topic", level: "$level",
 									instructor: "$instructor", enrollmentCount: "$enrollmentCount",
 									sessionsCount: "$sessionsCount"
 								}
@@ -247,6 +216,104 @@ class CourseServices {
 		return homeData;
 	}
 
+	static async getJoinedCoursesPipelines(userId) {
+
+		const courses = await userModel.aggregate([
+			{
+				$match: { _id: userId },
+			},
+			{ $unwind: '$myLearningIds' },
+			{
+				$lookup: {
+					from: 'courses',
+					localField: 'myLearningIds.courseId',
+					foreignField: '_id',
+					as: 'courseDetails',
+				},
+			},
+			{ $unwind: '$courseDetails' },
+			{
+				$lookup: {
+					from: 'sessions',
+					localField: 'courseDetails._id',
+					foreignField: 'courseId',
+					as: 'sessions',
+				},
+			},
+			{
+				$addFields: {
+					'courseDetails.pastSessionsCount':
+					{
+						$size: {
+							$filter: {
+								input: '$sessions',
+								as: 'session',
+								cond: { $lt: [{ $toDate: '$$session.startDate' }, currentDate] },
+							},
+						}
+					}
+				}
+			},
+			{
+				$lookup: {
+					from: 'users',
+					localField: 'courseDetails.instructor',
+					foreignField: '_id',
+					as: 'instructorArr',
+				},
+			},
+			{ $unwind: '$instructorArr' },
+			{
+				$project: {
+					_id: 0,
+					joinedAt: '$myLearningIds.joinedAt',
+					courseDetails: 1,
+					courseDetails: {
+						$setField: {
+							field: 'instructor',
+							input: '$courseDetails',
+							value: '$instructorArr.userName'
+						}
+					}
+				},
+			},
+		]);
+
+		return courses;
+	}
+
+	// static async getCoursesGroupedByTopic() {
+	// 	const topics = await courseModel.aggregate()
+	// 		.sort({ enrollmentCount: -1, createdAt: -1 })
+	// 		.lookup({
+	// 			from: 'users',
+	// 			localField: 'instructor',
+	// 			foreignField: "_id",
+	// 			as: "instructor"
+	// 		})
+	// 		.unwind("instructor")
+	// 		.project({
+	// 			image: 1, title: 1, price: 1, topic: 1, level: 1,
+	// 			instructor: {
+	// 				userPhoto: "$instructor.userPhoto",
+	// 				userName: "$instructor.userName"
+	// 			}
+	// 		})
+	// 		.group({
+	// 			_id: "$topic",
+	// 			courses: {
+	// 				$push: {
+	// 					image: "$image", title: "$title", price: "$price",
+	// 					topic: "$topic", level: "$level", instructor: "$instructor"
+	// 				},
+	// 			}
+	// 		}).project({
+	// 			_id: 0,
+	// 			category: "$_id",
+	// 			courses: { $slice: ["$courses", 5] }
+	// 		})
+	// 	return topics
+	// }
 
 }
 

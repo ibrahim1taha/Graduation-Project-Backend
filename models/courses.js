@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { v4: uuidv4 } = require('uuid');
+const generateRandomCode = require('../utils/generateRandomCode');
 
 const coursesSchema = mongoose.Schema({
 	image: {
@@ -16,7 +16,7 @@ const coursesSchema = mongoose.Schema({
 	},
 	topic: {
 		type: String, enum: {
-			values: ['software development', 'uiux design', 'cybersecurity', 'cloud computing', 'cloud computing'],
+			values: ['software development', 'uiux design', 'cybersecurity', 'cloud computing', 'artificial intelligence'],
 			// message: 'Unknown course category'
 		}, required: true,
 	},
@@ -45,7 +45,8 @@ const coursesSchema = mongoose.Schema({
 	},
 	courseCode: {
 		type: String,
-		default: uuidv4(),
+		default: generateRandomCode,
+		unique: true
 	}
 
 }, { timestamps: true })
