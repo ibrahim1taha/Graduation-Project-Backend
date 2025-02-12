@@ -16,7 +16,7 @@ const coursesSchema = mongoose.Schema({
 	},
 	topic: {
 		type: String, enum: {
-			values: ['software development', 'uiux design', 'cybersecurity', 'cloud computing', 'artificial intelligence'],
+			values: ['software-development', 'artificial-intelligence', 'cloud-computing', 'cybersecurity', 'uiux-design'],
 			// message: 'Unknown course category'
 		}, required: true,
 	},
@@ -30,12 +30,12 @@ const coursesSchema = mongoose.Schema({
 	instructor: {
 		type: mongoose.Schema.Types.ObjectId, ref: 'Users', required: true
 	},
-	trainees: [{
-		type: mongoose.Schema.Types.ObjectId, ref: 'Users'
-	}],
-	sessions: [{
-		type: mongoose.Schema.Types.ObjectId, ref: 'sessions'
-	}],
+	// trainees: [{
+	// 	type: mongoose.Schema.Types.ObjectId, ref: 'Users'
+	// }],
+	// sessions: [{
+	// 	session: { type: mongoose.Schema.Types.ObjectId, ref: 'sessions' }
+	// }],
 	sessionsCount: {
 		type: Number, default: 0
 	},

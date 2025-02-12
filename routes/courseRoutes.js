@@ -29,6 +29,9 @@ router.put('/update/:id', isAuth.authorized, isAuth.isInstructor
 // single api for Home page 
 router.get('/homeDate', courseController.getHomeData);
 
+// course details -> courses/getCourseDetails
+router.get('/courseDetails/:courseId', isAuth.authorizedOrNot, courseController.getCourseDetails);
+
 //get topic after click see all from home page , 
 router.get('/topic/:topic', courseController.getTopicCourses);
 

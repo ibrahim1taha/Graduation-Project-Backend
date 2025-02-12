@@ -58,7 +58,6 @@ const courseController = {
 		const session = await mongoose.startSession();
 		session.startTransaction();
 		try {
-			// handle if send updated sessions will update the course ;  
 			CourseServices.validateRequest(req);
 			const courseId = req.params.id;
 			CourseServices.validateObjectId(courseId);
@@ -68,11 +67,11 @@ const courseController = {
 			// check if has access to update (the course maker )
 			isAuth.isHaveAccess(course.instructor, req.userId);
 
-			const { title, price, type, level, description, sessions } = req.body;
+			const { title, price, topic, level, description, sessions } = req.body;
 
 			course.title = title;
 			course.price = price;
-			course.type = type;
+			course.topic = topic;
 			course.level = level;
 			course.description = description;
 
@@ -143,6 +142,35 @@ const courseController = {
 			if (!homeData) customErr(404, "No courses found!");
 			res.status(200).json(homeData[0]);
 		} catch (err) {
+			next(err);
+		}
+	},
+
+	getCourseDetails: async (req, res, next) => {
+		const courseId = req.params.courseId;
+		try {
+			if (!courseId) customErr(422, 'Course id is required!');
+			CourseServices.validateObjectId(courseId);
+
+			const course = await CourseServices.getOneCourseDetails(courseId);
+			// find if user joined the course or not or he is the instructor 
+			if (!req.userId)
+				return res.status(200).json({ access: 'public', course });
+
+			const user = await userModel.findById(req.userId);
+
+			if (user._id.equals(course.instructor._id))
+				return res.status(200).json({ access: 'instructor', course });
+
+			const isJoined = user.myLearningIds.some(doc => doc.courseId.toString() === courseId);
+
+			if (isJoined)
+				return res.status(200).json({ access: 'trainee', course });
+
+			res.status(200).json({ access: 'public', course });
+
+		} catch (err) {
+			console.log(err);
 			next(err);
 		}
 	},
