@@ -10,7 +10,7 @@ const s3 = require('../config/s3Configuration');
 const { PutObjectCommand } = require('@aws-sdk/client-s3');
 const { DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const { Upload } = require('@aws-sdk/lib-storage');
-
+const { ObjectId } = mongoose.Types;
 const courseDocIgnoredItems = {
 	trainees: 0, sessions: 0, _id: 0, createdAt: 0
 	, updatedAt: 0
@@ -160,14 +160,67 @@ class CourseServices {
 		}
 	}
 
+
 	static async getCourses(query, sortOption, skip, limit) {
-		const Courses = await courseModel.find(query, courseDocIgnoredItems)
-			.populate('instructor', 'userPhoto userName')
-			.sort(sortOption)
-			.skip(skip)
-			.limit(limit);
-		if (!Courses) customErr(404, 'something went wrong , no courses found!');
-		return Courses;
+		try {
+			const Courses = await courseModel.find(query, courseDocIgnoredItems)
+				.populate('instructor', 'userPhoto userName')
+				.sort(sortOption)
+				.skip(skip)
+				.limit(limit);
+			if (!Courses) customErr(404, 'No courses found!');
+			return Courses;
+		} catch (err) {
+			throw new Error('Something went wrong while fetching the courses!');
+		}
+	}
+
+	static async getOneCourseDetails(courseId) {
+		try {
+			const course = await courseModel.aggregate([
+				{
+					$match: { _id: new ObjectId(courseId) }
+				},
+				{
+					$lookup: {
+						from: 'sessions',
+						localField: '_id',
+						foreignField: 'courseId',
+						as: 'sessions'
+					}
+				},
+				{
+					$lookup: {
+						from: 'users',
+						localField: 'instructor',
+						foreignField: '_id',
+						as: 'instructor'
+					}
+				},
+				{ $unwind: '$instructor' },
+				{
+					$project: {
+						_id: 1, title: 1, price: 1, description: 1, topic: 1, level: 1,
+						sessionsCount: 1, enrollmentCount: 1,
+						instructor: {
+							_id: 1,
+							userName: 1,
+							userPhoto: 1
+						},
+						sessions: {
+							_id: 1,
+							title: 1,
+							startDate: 1
+						}
+					}
+				}
+			]);
+			if (!course) customErr(404, 'course not found!');
+			return course[0];
+		} catch (err) {
+			console.log(err);
+			throw new Error('Something went wrong while fetching the course!');
+		}
 	}
 
 	static async getHomeDatePipelines() {
