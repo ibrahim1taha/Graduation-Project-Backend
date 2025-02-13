@@ -228,7 +228,7 @@ class CourseServices {
 			from: 'users', localField: 'instructor', foreignField: '_id', as: 'instructor'
 		}).unwind("instructor")
 			.project({
-				image: 1, title: 1, price: 1, topic: 1, level: 1, enrollmentCount: 1, sessionsCount: 1,
+				image: 1, title: 1, price: 1, topic: 1, level: 1, enrollmentCount: 1, sessionsCount: 1, createdAt: 1,
 				instructor: {
 					userPhoto: "$instructor.userPhoto",
 					userName: "$instructor.userName"
