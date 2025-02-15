@@ -200,7 +200,7 @@ class CourseServices {
 				{ $unwind: '$instructor' },
 				{
 					$project: {
-						_id: 1, title: 1, price: 1, description: 1, topic: 1, level: 1,
+						_id: 1, image: 1, title: 1, price: 1, description: 1, topic: 1, level: 1,
 						sessionsCount: 1, enrollmentCount: 1,
 						instructor: {
 							_id: 1,
