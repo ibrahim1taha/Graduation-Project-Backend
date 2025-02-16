@@ -86,8 +86,8 @@ class CourseServices {
 	static async createSessions(courseId, sessions, session) {
 		try {
 
-			if (!Array.isArray(sessions) || sessions.length === 0) {
-				return;
+			if (!Array.isArray(sessions) || sessions.length < 2) {
+				throw new Error('You must have at least 2 sessions to update the course!')
 			}
 
 			const sessionsData = sessions.map(sessionDoc => ({
@@ -104,49 +104,45 @@ class CourseServices {
 	}
 	// create or update session on update course endpoint 
 	static async putSessions(courseId, sessions, transactionsSession) {
-		try {
-			if (!Array.isArray(sessions)) {
-				return { updatedCount: 0, insertedCount: 0, deletedCount: 0 };
-			}
 
-			const existingCourseSessions = await sessionsModel.find({ courseId: courseId });
-
-			const updatedSessions = [];
-
-			const updatedSessionsArr = sessions.map(session => {
-				if (session._id) {
-					updatedSessions.push(session._id);
-					return {
-						updateOne: {
-							filter: { _id: session._id },
-							update: { title: session.title, startDate: session.startDate }
-						}
-					}
-				} else {
-					return {
-						insertOne: {
-							document: { courseId: courseId, ...session }
-						}
-					};
-				}
-			})
-
-			const bulkRes = await sessionsModel.bulkWrite(updatedSessionsArr, { session: transactionsSession });
-
-			const sessionsToDelete = existingCourseSessions.filter(
-				session => !updatedSessions.includes(session._id.toString()
-				)).map(session =>
-					session._id.toString()
-				);
-
-			if (sessionsToDelete.length > 0)
-				await sessionsModel.deleteMany({ _id: { $in: sessionsToDelete } }, { session: transactionsSession });
-
-			return { updatedCount: bulkRes.modifiedCount, insertedCount: bulkRes.insertedCount, deletedCount: sessionsToDelete.length }
-		} catch (err) {
-			console.log(err);
-			throw new Error("Failed to update sessions!")
+		if (!Array.isArray(sessions) || sessions.length < 2) {
+			throw new Error('You must have at least 2 sessions to update the course!')
 		}
+
+		const existingCourseSessions = await sessionsModel.find({ courseId: courseId });
+
+		const updatedSessions = [];
+
+		const updatedSessionsArr = sessions.map(session => {
+			if (session._id) {
+				updatedSessions.push(session._id);
+				return {
+					updateOne: {
+						filter: { _id: session._id },
+						update: { title: session.title, startDate: session.startDate }
+					}
+				}
+			} else {
+				return {
+					insertOne: {
+						document: { courseId: courseId, ...session }
+					}
+				};
+			}
+		})
+
+		const bulkRes = await sessionsModel.bulkWrite(updatedSessionsArr, { session: transactionsSession });
+
+		const sessionsToDelete = existingCourseSessions.filter(
+			session => !updatedSessions.includes(session._id.toString()
+			)).map(session =>
+				session._id.toString()
+			);
+
+		if (sessionsToDelete.length > 0)
+			await sessionsModel.deleteMany({ _id: { $in: sessionsToDelete } }, { session: transactionsSession });
+
+		return { updatedCount: bulkRes.modifiedCount, insertedCount: bulkRes.insertedCount, deletedCount: sessionsToDelete.length }
 	}
 
 	static async deleteCourseSessions(courseId, session) {
@@ -334,6 +330,7 @@ class CourseServices {
 
 		return courses;
 	}
+
 
 	// static async getCoursesGroupedByTopic() {
 	// 	const topics = await courseModel.aggregate()
