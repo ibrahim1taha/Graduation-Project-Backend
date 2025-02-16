@@ -45,8 +45,10 @@ router.get('/MyLearning',
 	isAuth.authorized,
 	courseController.getMyLearning);
 
+////////////////////////// about joining course and start sessions /////////////////////////////
 // join course 
-router.post('/join/:courseId', isAuth.authorized, courseController.joinCourse)
+router.post('/join/:courseId', isAuth.authorized, courseController.joinCourse);
+
 
 
 // general routes 
