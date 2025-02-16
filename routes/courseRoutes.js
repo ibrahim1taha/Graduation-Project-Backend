@@ -49,6 +49,10 @@ router.get('/MyLearning',
 router.post('/join/:courseId', isAuth.authorized, courseController.joinCourse)
 
 
+// general routes 
+
+router.get('/search', courseController.searchCourses)
+
 // test api --- delete all courses with there images
 // router.delete('/deleteAll/testApi', courseController.dltAllCoursesWithImgs)
 module.exports = router; 

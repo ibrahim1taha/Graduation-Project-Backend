@@ -4,10 +4,18 @@ require('dotenv').config();
 const cors = require('cors')
 const port = process.env.PORT;
 const app = express();
+const { createServer } = require('http');
+const socket = require('./sockets/socket');
+const socketHandler = require('./sockets/socketHandler');
+
 const connectDB = require('./config/db_connection');
 // run database
 connectDB();
 
+const httpServer = createServer(app);
+socket.init(httpServer);
+const io = socket.getIo();
+socketHandler(io);
 const authRouter = require('./routes/authRoutes');
 const coursesRouter = require('./routes/courseRoutes');
 
@@ -31,6 +39,6 @@ app.use((error, req, res, next) => {
 	})
 })
 
-app.listen(port, () => {
+httpServer.listen(port, () => {
 	console.log(`___ Server run successfully on port = ${port} ___`);
 })

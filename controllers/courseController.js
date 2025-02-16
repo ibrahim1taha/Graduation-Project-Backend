@@ -8,6 +8,8 @@ const sharpImage = require('../utils/sharpImage');
 const mongoose = require('mongoose');
 const isAuth = require('../middlewares/isAuth');
 
+const io = require('../sockets/socket').getIo();
+
 const defaultImageUrl = 'https://grad-proj-images.s3.eu-north-1.amazonaws.com/uploads/defaultImage.png';
 
 const courseController = {
@@ -259,6 +261,40 @@ const courseController = {
 		}
 	},
 
+
+	searchCourses: async (req, res, next) => {
+		let { search } = req.body || 'production';
+		try {
+
+			const searchResult = await courseModel.aggregate([
+				{
+					"$search": {
+						"index": "default",
+						"text": {
+							"query": search, // Replace with your search term
+							"path": ["title", "topic", 'description']
+						}
+					}
+				},
+				{ $limit: 4 },
+				{
+					$lookup: {
+						from: 'users',
+						localField: 'instructor',
+						foreignField: '_id',
+						as: 'instructor'
+					}
+				},
+				{ $unwind: '$instructor' },
+				{ $project: { _id: 1, title: 1, instructor: '$instructor.userName' } }
+			])
+			if (!searchResult) customErr(404, 'Not found!');
+			io.emit('search', { searchResult });
+			res.status(200).json(searchResult)
+		} catch (err) {
+			next(err);
+		}
+	}
 
 	// retrieve home page course grouped by types and "recommended for u" category
 	// /courses/popular
