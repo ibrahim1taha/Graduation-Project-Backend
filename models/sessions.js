@@ -9,7 +9,15 @@ const sessionsSchema = mongoose.Schema({
 
 	startDate: { type: Date, required: true },
 
+	status: {
+		type: String,
+		enum: {
+			values: ['scheduled', 'ready', 'running', 'ended']
+		},
+		default: 'scheduled'
+	},
 	attendance: [{ type: mongoose.Types.ObjectId, ref: 'users' }],
+
 }, { timestamps: true })
 
 sessionsSchema.index({ courseId: 1 });
