@@ -1,9 +1,7 @@
 const socket = require('./socket');
 
-
 module.exports = (io) => {
 	io.on('connection', socket => {
-		console.log(socket);
 		console.log(`${socket.id} connected`);
 
 		socket.on('disconnect', () => {
