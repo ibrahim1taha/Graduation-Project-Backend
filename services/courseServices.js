@@ -12,7 +12,7 @@ const { DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const { Upload } = require('@aws-sdk/lib-storage');
 const { ObjectId } = mongoose.Types;
 const courseDocIgnoredItems = {
-	trainees: 0, sessions: 0, _id: 0, createdAt: 0
+	trainees: 0, sessions: 0, createdAt: 0
 	, updatedAt: 0
 }
 
