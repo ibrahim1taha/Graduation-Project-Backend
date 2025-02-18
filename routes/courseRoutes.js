@@ -45,21 +45,21 @@ router.get('/MyLearning',
 	isAuth.authorized,
 	courseController.getMyLearning);
 
+// general routes 
+router.get('/search', courseController.searchCourses)
 ////////////////////////// about joining course and start sessions /////////////////////////////
 
 // join course 
 router.post('/join/:courseId', isAuth.authorized, courseController.joinCourse);
 
 // instructor join the session -> update the session status 
-router.post('/join-session',)
+
 // trainee join the session
 
 // end the session
 
 
 
-// general routes 
-router.get('/search', courseController.searchCourses)
 
 // test api --- delete all courses with there images
 // router.delete('/deleteAll/testApi', courseController.dltAllCoursesWithImgs)

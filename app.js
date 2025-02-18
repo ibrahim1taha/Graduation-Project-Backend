@@ -18,6 +18,7 @@ const io = socket.getIo();
 socketHandler(io);
 const authRouter = require('./routes/authRoutes');
 const coursesRouter = require('./routes/courseRoutes');
+const groupChatRouter = require('./routes/groupChatRoutes');
 
 //allows a server to indicate any origins (domain, scheme, or port)
 app.use(cors());
@@ -28,6 +29,7 @@ app.use(express.json());
 app.use('/image', express.static(path.join(__dirname, 'public/images')));
 
 app.use('/courses', coursesRouter);
+app.use('/groups', groupChatRouter);
 app.use('/auth', authRouter);
 
 app.use((error, req, res, next) => {

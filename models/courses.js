@@ -14,6 +14,11 @@ const coursesSchema = mongoose.Schema({
 	description: {
 		type: String, required: true,
 	},
+	chatGroupId: {
+		type: mongoose.Schema.Types.ObjectId,
+		ref: 'groups',
+		required: true
+	},
 	topic: {
 		type: String, enum: {
 			values: ['software-development', 'artificial-intelligence', 'cloud-computing', 'cybersecurity', 'uiux-design'],

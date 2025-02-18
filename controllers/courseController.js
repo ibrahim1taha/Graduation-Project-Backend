@@ -1,12 +1,13 @@
 const courseModel = require('../models/courses');
 const sessionsModel = require('../models/sessions');
 const userModel = require('../models/users');
+const groupsModel = require('../models/groups');
 const customErr = require('../utils/customErr');
 const path = require('path');
 const CourseServices = require('../services/courseServices');
-const sharpImage = require('../utils/sharpImage');
 const mongoose = require('mongoose');
 const isAuth = require('../middlewares/isAuth');
+const awsFileHandler = require('../utils/awsFileHandler');
 
 const io = require('../sockets/socket').getIo();
 
@@ -28,17 +29,26 @@ const courseController = {
 				, level: level, instructor: req.userId, sessionsCount: sessions.length
 			})
 
-			await CourseServices.createSessions(course._id, sessions, session);
+			if (req.file)
+				imageURl = await awsFileHandler.handleFileUploaded(req.file, 'uploads', 800, 450);
 
-			if (req.file) {
-				if (req.file.size > (1024 * 1024)) customErr(422, 'Maximum image size is 1MB', 'image'); // send as string 422 
-				// share image to 800 * 450 px 
-				const imageBuffer = await sharpImage(req.file.buffer, 800, 450);
-				imageURl = await CourseServices.handleFileUploaded(imageBuffer, req.file.originalname, req.file.mimetype);
-			}
 			course.image = imageURl;
+			// use promise all 
+			// create chat group for this course 
+			const courseChatGroup = new groupsModel({
+				groupImage: imageURl,
+				groupName: title,
+				course: course._id,
+				instructor: req.userId
+			})
 
-			await course.save({ session });
+			course.chatGroupId = courseChatGroup._id;
+
+			await Promise.all([
+				CourseServices.createSessions(course._id, sessions, session),
+				courseChatGroup.save({ session }),
+				course.save({ session })
+			]);
 
 			await session.commitTransaction();
 			session.endSession();
@@ -83,12 +93,9 @@ const courseController = {
 
 			if (req.file) {
 				if (course.image != defaultImageUrl)
-					await CourseServices.deleteImageFromS3(course.image);
+					await awsFileHandler.deleteImageFromS3(course.image);
 
-				if (req.file.size > (1024 * 1024)) customErr(422, 'Maximum image size is 1MB', 'image');
-				const imageBuffer = await sharpImage(req.file.buffer, 800, 450)
-
-				course.image = await CourseServices.handleFileUploaded(imageBuffer, req.file.originalname, req.file.mimetype);
+				course.image = await awsFileHandler.handleFileUploaded(req.file, 'uploads', 800, 450);
 			}
 
 			await course.save({ session });
@@ -123,7 +130,7 @@ const courseController = {
 			isAuth.isHaveAccess(course.instructor, req.userId);
 			// validate the image not the default one 
 			if (course.image != defaultImageUrl)
-				await CourseServices.deleteImageFromS3(course.image);
+				await awsFileHandler.deleteImageFromS3(course.image);
 
 			await CourseServices.deleteCourseSessions(course._id, session);
 
@@ -242,8 +249,8 @@ const courseController = {
 
 			const isJoined = user.myLearningIds.some(doc => doc.courseId && doc.courseId.toString() === courseId);
 			if (isJoined) customErr(422, 'You are already joined the course!');
-
-			user.myLearningIds.push({ courseId: course._id });
+			console.log(course.chatGroupId)
+			user.myLearningIds.push({ courseId: course._id, courseChatGroupId: course.chatGroupId });
 			course.enrollmentCount += 1;
 
 			await Promise.all([
@@ -264,6 +271,7 @@ const courseController = {
 
 	searchCourses: async (req, res, next) => {
 		let { search } = req.body || 'production';
+		const socketId = req.headers['socket-id'];
 		try {
 
 			const searchResult = await courseModel.aggregate([
@@ -276,7 +284,7 @@ const courseController = {
 						}
 					}
 				},
-				{ $limit: 4 },
+				{ $limit: 10 },
 				{
 					$lookup: {
 						from: 'users',
@@ -286,10 +294,10 @@ const courseController = {
 					}
 				},
 				{ $unwind: '$instructor' },
-				{ $project: { _id: 1, title: 1, instructor: '$instructor.userName' } }
+				{ $project: { _id: 1, title: 1, topic: 1, instructor: '$instructor.userName' } }
 			])
 			if (!searchResult) customErr(404, 'Not found!');
-			io.emit('search', { searchResult });
+			io.to(socketId).emit('search', { searchResult });
 			res.status(200).json(searchResult)
 		} catch (err) {
 			next(err);
