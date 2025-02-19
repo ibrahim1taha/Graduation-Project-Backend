@@ -4,28 +4,13 @@ const messageModel = require('../models/messages');
 const userModel = require('../models/users');
 const awsFileHandler = require('../utils/awsFileHandler');
 const io = require('../sockets/socket').getIo();
-
+const groupsChatServices = require('../services/groupsChatServices');
 class chatGroupsController {
 
 	static async getGroupsLists(req, res, next) {
 		try {
 			if (!req.userId) customErr(422, 'User must be authorized!')
-			const groups = await userModel.aggregate([
-				{
-					$match: { _id: req.userId }
-				},
-				{
-					$lookup: {
-						from: 'groups',
-						localField: 'myLearningIds.courseChatGroupId',
-						foreignField: '_id',
-						as: 'groups'
-					}
-				},
-				{
-					$project: { groups: 1 }
-				}
-			])
+			const groups = await groupsChatServices.getGroupsListForUser(req.userId);
 			if (!groups) customErr(404, 'No groups found, you must join a course to see its group here!');
 
 			res.status(200).json(groups[0]);
@@ -41,7 +26,6 @@ class chatGroupsController {
 		try {
 			const groupChat = await messageModel.find({ groupId: groupId }).populate('sender', '_id userPhoto userName')
 			if (!groupChat) customErr(404, 'Error 404 , Not Found!');
-			// front end must send emit(joinRoom, groupId) 
 			res.status(200).json(groupChat);
 		} catch (err) {
 			console.log(err);
@@ -62,9 +46,21 @@ class chatGroupsController {
 				msgImage: msgImageUrl
 			})
 
-			io.to(groupId).emit('sendMsg', message)
-
 			await message.save();
+
+			const updatedGroup = await groupsModel.findByIdAndUpdate(
+				groupId,
+				{ lastMsgTime: Date.now() },
+				{ new: true }
+			);
+
+			io.to(groupId).emit('sendMsg', {
+				groupId: groupId,
+				message: message,
+				lastMsgTime: updatedGroup.lastMsgTime
+			});
+			// io.to(groupId).emit('sendMsg', { groupId, message })
+			// io.to(groupId).emit('one-of-the-groupList-have-msg', { groupId, lastMsgTime: updatedGroup.lastMsgTime })
 			res.status(201).json({ message: 'massage sent successfully!' });
 		} catch (err) {
 			console.log(err);

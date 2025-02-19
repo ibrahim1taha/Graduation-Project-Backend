@@ -4,9 +4,9 @@ module.exports = (io) => {
 	io.on('connection', socket => {
 		console.log(`${socket.id} connected`);
 
-		socket.on('joinRoom', (groupId) => {
-			socket.join(groupId);
-			console.log(`${socket.id} joined room: ${groupId} -- rooms size = ${socket.rooms.size}`);
+		socket.on('joinRooms', (groups) => {
+			socket.join(groups.groupsId);
+			console.log(groups);
 		})
 
 		socket.on('leaveRoom', (groupId) => {
@@ -15,7 +15,10 @@ module.exports = (io) => {
 		})
 
 		socket.on('disconnect', () => {
-			console.log(`${socket.id} disconnected ---- rooms size = ${socket.rooms.size}`);
+			socket.rooms.forEach(room => {
+				socket.leave(room);
+			});
+			console.log(`${socket.id} disconnected and left all rooms`);
 		})
 	})
 }

@@ -24,12 +24,11 @@ const groupsSchema = mongoose.Schema({
 		type: ObjectId,
 		ref: 'users'
 	}],
-	// lastMsg: {
-	// 	text: String,
-	// 	sender: ObjectId,
-	// 	time: Date
-	// }
-}, { timestamp: true });
+	lastMsgTime: {
+		type: Date,
+		required: true
+	},
+}, { timestamps: true });
 
 
 groupsSchema.index({ course: 1 });

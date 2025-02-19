@@ -5,7 +5,6 @@ const ObjectId = mongoose.Schema.Types.ObjectId
 const msgSchema = mongoose.Schema({
 	text: {
 		type: String,
-		required: true
 	},
 	groupId: {
 		type: ObjectId,
@@ -21,7 +20,7 @@ const msgSchema = mongoose.Schema({
 		type: String
 	}
 
-}, { timestamp: true });
+}, { timestamps: true });
 
 msgSchema.index({ groupId: 1 });
 msgSchema.index({ senderId: 1 });

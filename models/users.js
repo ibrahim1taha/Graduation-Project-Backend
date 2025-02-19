@@ -36,7 +36,7 @@ const userSchema = mongoose.Schema({
 		joinedAt: { type: Date, default: Date.now },
 	}],
 
-}, { timestamp: true })
+}, { timestamps: true })
 
 
 userSchema.index({ 'myLearningIds.courseChatGroupId': 1 });
