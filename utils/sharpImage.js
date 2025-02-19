@@ -3,7 +3,9 @@ const customErr = require('./customErr');
 
 const sharpImage = async (imageBuffer, width, height) => {
 	const fileBuffer = await sharp(imageBuffer)
-		.resize(width, height, {
+		.resize({
+			width: width, // Define the width
+			height: height, // Let sharp auto-calculate height to maintain aspect ratio
 			fit: 'cover',
 			position: 'center',
 			withoutEnlargement: true,

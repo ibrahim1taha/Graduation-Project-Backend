@@ -16,7 +16,7 @@ const sessionsSchema = mongoose.Schema({
 		},
 		default: 'scheduled'
 	},
-	attendance: [{ type: mongoose.Types.ObjectId, ref: 'users' }],
+	attendance: [{ type: mongoose.Types.ObjectId, ref: 'Users' }],
 
 }, { timestamps: true })
 

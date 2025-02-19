@@ -14,6 +14,11 @@ const coursesSchema = mongoose.Schema({
 	description: {
 		type: String, required: true,
 	},
+	chatGroupId: {
+		type: mongoose.Schema.Types.ObjectId,
+		ref: 'groups',
+		required: true
+	},
 	topic: {
 		type: String, enum: {
 			values: ['software-development', 'artificial-intelligence', 'cloud-computing', 'cybersecurity', 'uiux-design'],
@@ -51,11 +56,12 @@ const coursesSchema = mongoose.Schema({
 
 }, { timestamps: true })
 
-coursesSchema.index({ courseLevel: 1 });
-coursesSchema.index({ courseTopic: 1 });
-coursesSchema.index({ courseName: 1 });
+coursesSchema.index({ level: 1 });
+coursesSchema.index({ topic: 1 });
+coursesSchema.index({ title: 1 });
 coursesSchema.index({ createdAt: -1 });
 coursesSchema.index({ enrollmentCount: -1 });
 coursesSchema.index({ instructor: 1 });
+coursesSchema.index({ title: "text", topic: "text", description: "text" });
 
 module.exports = mongoose.model('courses', coursesSchema); 

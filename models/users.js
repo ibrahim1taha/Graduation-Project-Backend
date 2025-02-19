@@ -32,12 +32,13 @@ const userSchema = mongoose.Schema({
 	},
 	myLearningIds: [{
 		courseId: { type: mongoose.Types.ObjectId, required: true, ref: 'courses' },
+		courseChatGroupId: { type: mongoose.Types.ObjectId, required: true, ref: 'groups' },
 		joinedAt: { type: Date, default: Date.now },
 	}],
-	createdAt: {
-		type: Date,
-		default: Date.now
-	}
-})
+
+}, { timestamp: true })
+
+
+userSchema.index({ 'myLearningIds.courseChatGroupId': 1 });
 
 module.exports = mongoose.model('Users', userSchema);
