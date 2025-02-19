@@ -11,7 +11,10 @@ router.get('/groupsList', isAuth.authorized, groupController.getGroupsLists)
 // get chat for specific group
 router.get('/groupChat/:groupId', isAuth.authorized, groupController.getGroupChat)
 // Post : send message  
-router.post('/sendMessage/:groupId', isAuth.authorized, uploaded.single('image'), groupController.postSendMsg)
+router.post('/sendMessage/:groupId',
+	isAuth.authorized,
+	uploaded.single('image'),
+	groupController.postSendMsg)
 
 
 module.exports = router; 
