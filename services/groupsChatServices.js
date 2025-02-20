@@ -21,41 +21,52 @@ class groupsChatServices {
 				}
 			},
 			{
-				$unwind: '$groups'
+				$lookup: {
+					from: 'groups',
+					localField: '_id',
+					foreignField: 'instructor',
+					as: 'urGroups'
+				}
+			},
+			{
+				$addFields: {
+					groupsList: { $concatArrays: ['$groups', '$urGroups'] }
+				}
+			},
+			{
+				$unwind: '$groupsList'
 			},
 			{
 				$lookup: {
 					from: 'users',
-					localField: 'groups.instructor',
+					localField: 'groupsList.instructor',
 					foreignField: '_id',
-					as: 'groups.instructorDetails'
+					as: 'groupsList.instructor'
 				}
 			},
 			{
-				$unwind: '$groups.instructorDetails'
-			},
-			{
-				$addFields: {
-					'groups.instructor': {
-						_id: '$groups.instructorDetails._id',
-						userName: '$groups.instructorDetails.userName',
-					}
-				}
+				$unwind: '$groupsList.instructor'
 			},
 			{
 				$group: {
 					_id: '$_id',
-					groups: { $push: '$groups' }
+					groupsList: {
+						$push: '$groupsList'
+					}
 				}
 			},
 			{
 				$project: {
-					groups: {
+					_id: 0,
+					userId: '$_id',
+					groupsList: {
 						_id: 1,
 						groupImage: 1,
 						groupName: 1,
 						course: 1,
-						instructor: 1,
+						'instructor._id': 1,
+						'instructor.userPhoto': 1,
+						'instructor.userName': 1,
 						traineeCount: 1,
 						trainees: 1,
 						__v: 1,
@@ -67,39 +78,6 @@ class groupsChatServices {
 		]);
 	}
 
-
-	static async getInstructorGroups(id) {
-		return await groupsModel.aggregate([
-			{
-				$match: { instructor: id }
-			},
-			{
-				$lookup: {
-					from: 'users',
-					localField: 'instructor',
-					foreignField: '_id',
-					as: 'instructor'
-				}
-			},
-			{ $unwind: '$instructor' },
-			{
-				$project: {
-					_id: 1,
-					groupImage: 1,
-					groupName: 1,
-					course: 1,
-					'instructor._id': 1,
-					'instructor.userPhoto': 1,
-					'instructor.userName': 1,
-					traineeCount: 1,
-					trainees: 1,
-					__v: 1,
-					updatedAt: 1,
-					lastMsgTime: 1
-				}
-			}
-		])
-	}
 }
 
 module.exports = groupsChatServices; 

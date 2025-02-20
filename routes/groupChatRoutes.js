@@ -8,7 +8,7 @@ const groupController = require('../controllers/groupChatController')
 // get groups list for specific user
 router.get('/groupsList', isAuth.authorized, groupController.getGroupsLists)
 
-// get chat for specific group
+// get chat for specific group // validate how can get this chat 
 router.get('/groupChat/:groupId', isAuth.authorized, groupController.getGroupChat)
 // Post : send message  
 router.post('/sendMessage/:groupId',

@@ -5,20 +5,14 @@ const userModel = require('../models/users');
 const awsFileHandler = require('../utils/awsFileHandler');
 const io = require('../sockets/socket').getIo();
 const groupsChatServices = require('../services/groupsChatServices');
+const mongoose = require('mongoose');
 class chatGroupsController {
 
 	static async getGroupsLists(req, res, next) {
 		try {
 
 			if (!req.userId) customErr(422, 'User must be authorized!')
-			const groups = await groupsChatServices.getGroupsListForUser(req.userId);
-
-			let groupList = (groups ? groups[0].groups : []);
-
-			if (req.userRole === 'instructor') {
-				let instructorCoursesGroups = await groupsChatServices.getInstructorGroups(req.userId);
-				groupList = groupList.concat(instructorCoursesGroups)
-			}
+			const groupList = await groupsChatServices.getGroupsListForUser(req.userId);
 
 			if (!groupList) customErr(404, 'No groups found, you must join a course to see its group here!');
 
@@ -34,12 +28,20 @@ class chatGroupsController {
 		const groupId = req.params.groupId;
 
 		try {
-			const groupChat = await messageModel.find({ groupId: groupId }).populate('sender', '_id userPhoto userName')
-			if (!groupChat) customErr(404, 'Error 404 , Not Found!');
+			const isInGroup = await userModel.findOne({
+				$and: [{ _id: req.userId }, { 'myLearningIds.courseChatGroupId': groupId }]
+			}, { _id: 1 });
+
+			if (!isInGroup) customErr(422, 'Not authorized to access this chat!');
+
+			const groupChat = await messageModel.find({ groupId: groupId }).populate('sender', '_id userPhoto userName');
+			if (!groupChat || groupChat.length === 0) {
+				customErr(404, 'No messages found in this group chat.');
+			}
 			res.status(200).json(groupChat);
 		} catch (err) {
 			console.log(err);
-			next();
+			next(err);
 		}
 	};
 
@@ -47,6 +49,32 @@ class chatGroupsController {
 		const groupId = req.params.groupId;
 		const { text, msgFlagId } = req.body;
 		try {
+			const session = await mongoose.startSession();
+			session.startTransaction();
+
+			if (!text || text.trim().length === 0) {
+				customErr(400, 'Message text cannot be empty.');
+			}
+
+			const group = await groupsModel.findById(groupId);
+
+			if (!group) {
+				await session.abortTransaction();
+				session.endSession();
+				return customErr(404, 'The message group is missing!');
+			}
+
+			const isInGroup = await userModel.findOne(
+				{ _id: req.userId, 'myLearningIds.courseChatGroupId': groupId },
+				{ _id: 1 }
+			);
+
+			if (!isInGroup) {
+				await session.abortTransaction();
+				session.endSession();
+				return customErr(403, 'You are not authorized to send messages in this chat.');
+			}
+
 			let msgImageUrl;
 			if (req.file) msgImageUrl = await awsFileHandler.handleFileUploaded(req.file, 'chatImages', 400, null);
 			const message = new messageModel({
@@ -56,26 +84,30 @@ class chatGroupsController {
 				msgImage: msgImageUrl
 			})
 
+			group.lastMsgTime = Date.now();
+
 			await message.populate('sender', '_id userPhoto userName');
-			await message.save();
 
-			const updatedGroup = await groupsModel.findByIdAndUpdate(
-				groupId,
-				{ lastMsgTime: Date.now() },
-				{ new: true }
-			);
+			await Promise.all([
+				message.save({ session }),
+				group.save({ session })
+			])
 
+			await session.commitTransaction();
+			session.endSession();
 			io.to(groupId).emit('sendMsg', {
 				msgFlagId: msgFlagId,
 				groupId: groupId,
 				message: message,
-				lastMsgTime: updatedGroup.lastMsgTime
+				lastMsgTime: group.lastMsgTime
 			});
 
 			res.status(201).json({ message: 'massage sent successfully!' });
 		} catch (err) {
 			console.log(err);
-			next();
+			await session.abortTransaction();
+			session.endSession();
+			next(err);
 		}
 	}
 
