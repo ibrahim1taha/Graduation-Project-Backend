@@ -11,7 +11,7 @@ const groupsSchema = mongoose.Schema({
 		required: true
 	},
 	course: {
-		type: ObjectId
+		type: ObjectId, ref: 'Users'
 	},
 	instructor: {
 		type: ObjectId
@@ -22,11 +22,11 @@ const groupsSchema = mongoose.Schema({
 	},
 	trainees: [{
 		type: ObjectId,
-		ref: 'users'
+		ref: 'Users'
 	}],
 	lastMsgTime: {
 		type: Date,
-		required: true
+		// required: true
 	},
 }, { timestamps: true });
 

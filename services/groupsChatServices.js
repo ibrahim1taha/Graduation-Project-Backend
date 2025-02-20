@@ -66,6 +66,40 @@ class groupsChatServices {
 			}
 		]);
 	}
+
+
+	static async getInstructorGroups(id) {
+		return await groupsModel.aggregate([
+			{
+				$match: { instructor: id }
+			},
+			{
+				$lookup: {
+					from: 'users',
+					localField: 'instructor',
+					foreignField: '_id',
+					as: 'instructor'
+				}
+			},
+			{ $unwind: '$instructor' },
+			{
+				$project: {
+					_id: 1,
+					groupImage: 1,
+					groupName: 1,
+					course: 1,
+					'instructor._id': 1,
+					'instructor.userPhoto': 1,
+					'instructor.userName': 1,
+					traineeCount: 1,
+					trainees: 1,
+					__v: 1,
+					updatedAt: 1,
+					lastMsgTime: 1
+				}
+			}
+		])
+	}
 }
 
 module.exports = groupsChatServices; 

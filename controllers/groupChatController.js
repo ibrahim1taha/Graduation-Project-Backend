@@ -9,11 +9,21 @@ class chatGroupsController {
 
 	static async getGroupsLists(req, res, next) {
 		try {
+
 			if (!req.userId) customErr(422, 'User must be authorized!')
 			const groups = await groupsChatServices.getGroupsListForUser(req.userId);
-			if (!groups) customErr(404, 'No groups found, you must join a course to see its group here!');
 
-			res.status(200).json(groups[0]);
+			let groupList = (groups ? groups[0].groups : []);
+
+			if (req.userRole === 'instructor') {
+				let instructorCoursesGroups = await groupsChatServices.getInstructorGroups(req.userId);
+				groupList = groupList.concat(instructorCoursesGroups)
+			}
+
+			if (!groupList) customErr(404, 'No groups found, you must join a course to see its group here!');
+
+			res.status(200).json(groupList);
+
 		} catch (err) {
 			console.log(err);
 			next(err);
@@ -35,7 +45,7 @@ class chatGroupsController {
 
 	static async postSendMsg(req, res, next) {
 		const groupId = req.params.groupId;
-		const { text } = req.body;
+		const { text, msgFlagId } = req.body;
 		try {
 			let msgImageUrl;
 			if (req.file) msgImageUrl = await awsFileHandler.handleFileUploaded(req.file, 'chatImages', 400, null);
@@ -46,6 +56,7 @@ class chatGroupsController {
 				msgImage: msgImageUrl
 			})
 
+			await message.populate('sender', '_id userPhoto userName');
 			await message.save();
 
 			const updatedGroup = await groupsModel.findByIdAndUpdate(
@@ -55,12 +66,12 @@ class chatGroupsController {
 			);
 
 			io.to(groupId).emit('sendMsg', {
+				msgFlagId: msgFlagId,
 				groupId: groupId,
 				message: message,
 				lastMsgTime: updatedGroup.lastMsgTime
 			});
-			// io.to(groupId).emit('sendMsg', { groupId, message })
-			// io.to(groupId).emit('one-of-the-groupList-have-msg', { groupId, lastMsgTime: updatedGroup.lastMsgTime })
+
 			res.status(201).json({ message: 'massage sent successfully!' });
 		} catch (err) {
 			console.log(err);

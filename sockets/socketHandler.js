@@ -6,7 +6,7 @@ module.exports = (io) => {
 
 		socket.on('joinRooms', (groups) => {
 			socket.join(groups.groupsId);
-			console.log(groups);
+			console.log(groups.groupsId);
 		})
 
 		socket.on('leaveRoom', (groupId) => {
