@@ -94,8 +94,7 @@ class chatGroupsController {
 				group.save({ session })
 			])
 
-			await session.commitTransaction();
-			session.endSession();
+			await session.commitTransaction()
 			io.to(groupId).emit('sendMsg', {
 				msgFlagId: msgFlagId,
 				groupId: groupId,
@@ -107,8 +106,9 @@ class chatGroupsController {
 		} catch (err) {
 			console.log(err);
 			await session.abortTransaction();
-			session.endSession();
 			next(err);
+		} finally {
+			session.endSession();
 		}
 	}
 

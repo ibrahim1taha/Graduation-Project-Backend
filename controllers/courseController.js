@@ -51,7 +51,6 @@ const courseController = {
 			]);
 
 			await session.commitTransaction();
-			session.endSession();
 
 			res.status(201).json({
 				message: `course created successfully with ${sessions?.length || 0} session added`,
@@ -59,9 +58,10 @@ const courseController = {
 
 		} catch (err) {
 			await session.abortTransaction();
-			session.endSession();
 			console.log(err);
 			next(err);
+		} finally {
+			session.endSession();
 		}
 
 	},
@@ -101,7 +101,6 @@ const courseController = {
 			await course.save({ session });
 
 			await session.commitTransaction();
-			session.endSession();
 
 			res.status(201).json({
 				status: 200,
@@ -111,8 +110,9 @@ const courseController = {
 		} catch (err) {
 			console.log(err);
 			await session.abortTransaction();
-			session.endSession();
 			next(err);
+		} finally {
+			session.endSession();
 		}
 
 	},
@@ -135,13 +135,13 @@ const courseController = {
 			await CourseServices.deleteCourseSessions(course._id, session);
 
 			await session.commitTransaction();
-			session.endSession();
 			res.status(200).json({ message: "course deleted successfully" });
 
 		} catch (err) {
 			await session.abortTransaction();
-			session.endSession();
 			next(err);
+		} finally {
+			session.endSession();
 		}
 	},
 
