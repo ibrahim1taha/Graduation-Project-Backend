@@ -31,13 +31,15 @@ class chatGroupsController {
 			const isInGroup = await userModel.findOne({
 				$and: [{ _id: req.userId }, { 'myLearningIds.courseChatGroupId': groupId }]
 			}, { _id: 1 });
-
-			if (!isInGroup) customErr(422, 'Not authorized to access this chat!');
+			const group = await groupsModel.findById(groupId);
+			if (!group) customErr(404, 'Group not found!')
+			if (!isInGroup && req.userId.toString() != group.instructor.toString())
+				customErr(422, 'Not authorized to access this chat!');
 
 			const groupChat = await messageModel.find({ groupId: groupId }).populate('sender', '_id userPhoto userName');
 
 			const paginatedChat = groupChat.slice(idx, idx + 21);
-			if (!groupChat || groupChat.length === 0) {
+			if (!groupChat) {
 				customErr(404, 'No messages found in this group chat.');
 			}
 
@@ -70,7 +72,7 @@ class chatGroupsController {
 				{ _id: 1 }
 			);
 
-			if (!isInGroup) {
+			if (!isInGroup && req.userId.toString() != group.instructor.toString()) {
 				customErr(403, 'You are not authorized to send messages in this chat.');
 			}
 
