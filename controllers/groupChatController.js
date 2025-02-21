@@ -16,7 +16,7 @@ class chatGroupsController {
 
 			if (!groupList) customErr(404, 'No groups found, you must join a course to see its group here!');
 
-			res.status(200).json(groupList);
+			res.status(200).json(groupList[0]);
 
 		} catch (err) {
 			console.log(err);
@@ -48,9 +48,9 @@ class chatGroupsController {
 	static async postSendMsg(req, res, next) {
 		const groupId = req.params.groupId;
 		const { text, msgFlagId } = req.body;
+		const session = await mongoose.startSession();
+		session.startTransaction();
 		try {
-			const session = await mongoose.startSession();
-			session.startTransaction();
 
 			if (!text || text.trim().length === 0) {
 				customErr(400, 'Message text cannot be empty.');
@@ -59,9 +59,7 @@ class chatGroupsController {
 			const group = await groupsModel.findById(groupId);
 
 			if (!group) {
-				await session.abortTransaction();
-				session.endSession();
-				return customErr(404, 'The message group is missing!');
+				customErr(404, 'The message group is missing!');
 			}
 
 			const isInGroup = await userModel.findOne(
@@ -70,9 +68,7 @@ class chatGroupsController {
 			);
 
 			if (!isInGroup) {
-				await session.abortTransaction();
-				session.endSession();
-				return customErr(403, 'You are not authorized to send messages in this chat.');
+				customErr(403, 'You are not authorized to send messages in this chat.');
 			}
 
 			let msgImageUrl;
