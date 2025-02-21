@@ -36,9 +36,10 @@ class chatGroupsController {
 			if (!isInGroup && req.userId.toString() != group.instructor.toString())
 				customErr(422, 'Not authorized to access this chat!');
 
-			const groupChat = await messageModel.find({ groupId: groupId }).populate('sender', '_id userPhoto userName');
+			const groupChat = await messageModel.find({ groupId: groupId }).sort({ createdAt: -1 }).populate('sender', '_id userPhoto userName');
 
 			const paginatedChat = groupChat.slice(idx, idx + 21);
+			console.log(paginatedChat[0]);
 			if (!groupChat) {
 				customErr(404, 'No messages found in this group chat.');
 			}
@@ -54,58 +55,55 @@ class chatGroupsController {
 		const groupId = req.params.groupId;
 		const { text, msgFlagId } = req.body;
 		const session = await mongoose.startSession();
-		session.startTransaction();
 		try {
+			await session.withTransaction(async () => {
+				if ((!text || text.trim().length === 0) && !req.file) {
+					customErr(400, 'Message text cannot be empty.');
+				}
 
-			if (!text || text.trim().length === 0) {
-				customErr(400, 'Message text cannot be empty.');
-			}
+				const group = await groupsModel.findById(groupId).session(session);
 
-			const group = await groupsModel.findById(groupId);
+				if (!group) {
+					customErr(404, 'The message group is missing!');
+				}
 
-			if (!group) {
-				customErr(404, 'The message group is missing!');
-			}
+				const isInGroup = await userModel.findOne(
+					{ _id: req.userId, 'myLearningIds.courseChatGroupId': groupId },
+					{ _id: 1 }
+				).session(session);
 
-			const isInGroup = await userModel.findOne(
-				{ _id: req.userId, 'myLearningIds.courseChatGroupId': groupId },
-				{ _id: 1 }
-			);
+				if (!isInGroup && req.userId.toString() != group.instructor.toString()) {
+					customErr(403, 'You are not authorized to send messages in this chat.');
+				}
 
-			if (!isInGroup && req.userId.toString() != group.instructor.toString()) {
-				customErr(403, 'You are not authorized to send messages in this chat.');
-			}
+				let msgImageUrl;
+				if (req.file) msgImageUrl = await awsFileHandler.handleFileUploaded(req.file, 'chatImages', 400, null);
+				const message = new messageModel({
+					text: text,
+					groupId: groupId,
+					sender: req.userId,
+					msgImage: msgImageUrl
+				})
 
-			let msgImageUrl;
-			if (req.file) msgImageUrl = await awsFileHandler.handleFileUploaded(req.file, 'chatImages', 400, null);
-			const message = new messageModel({
-				text: text,
-				groupId: groupId,
-				sender: req.userId,
-				msgImage: msgImageUrl
+				group.lastMsgTime = Date.now();
+
+				await message.populate('sender', '_id userPhoto userName');
+				await Promise.all([
+					message.save({ session }),
+					group.save({ session })
+				])
+
+				io.to(groupId).emit('sendMsg', {
+					msgFlagId: msgFlagId,
+					groupId: groupId,
+					message: message,
+					lastMsgTime: group.lastMsgTime
+				});
+
+				res.status(201).json({ message: 'massage sent successfully!' });
 			})
-
-			group.lastMsgTime = Date.now();
-
-			await message.populate('sender', '_id userPhoto userName');
-
-			await Promise.all([
-				message.save({ session }),
-				group.save({ session })
-			])
-
-			await session.commitTransaction()
-			io.to(groupId).emit('sendMsg', {
-				msgFlagId: msgFlagId,
-				groupId: groupId,
-				message: message,
-				lastMsgTime: group.lastMsgTime
-			});
-
-			res.status(201).json({ message: 'massage sent successfully!' });
 		} catch (err) {
 			console.log(err);
-			await session.abortTransaction();
 			next(err);
 		} finally {
 			session.endSession();
