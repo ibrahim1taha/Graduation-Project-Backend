@@ -17,47 +17,44 @@ const courseController = {
 	// add course by instructor endPoint
 	addCourse: async (req, res, next) => {
 		const session = await mongoose.startSession();
-		session.startTransaction();
+		// session.startTransaction();
 		try {
+			await session.withTransaction(async () => {
+				CourseServices.validateRequest(req); // send error as array 422
+				let imageURl = defaultImageUrl
+				const { title, price, description, topic, level, sessions } = req.body;
 
-			CourseServices.validateRequest(req); // send error as array 422
-			let imageURl = defaultImageUrl
-			const { title, price, description, topic, level, sessions } = req.body;
+				const course = new courseModel({
+					image: '', title: title, price: price, description: description, topic: topic
+					, level: level, instructor: req.userId, sessionsCount: sessions.length
+				})
 
-			const course = new courseModel({
-				image: '', title: title, price: price, description: description, topic: topic
-				, level: level, instructor: req.userId, sessionsCount: sessions.length
+				if (req.file)
+					imageURl = await awsFileHandler.handleFileUploaded(req.file, 'uploads', 800, 450);
+
+				course.image = imageURl;
+				// use promise all 
+				// create chat group for this course 
+				const courseChatGroup = new groupsModel({
+					groupImage: imageURl,
+					groupName: title,
+					course: course._id,
+					instructor: req.userId
+				})
+
+				course.chatGroupId = courseChatGroup._id;
+
+				await Promise.all([
+					CourseServices.createSessions(course._id, sessions, session),
+					courseChatGroup.save({ session }),
+					course.save({ session })
+				]);
+
+				res.status(201).json({
+					message: `course created successfully with ${sessions?.length || 0} session added`,
+				})
 			})
-
-			if (req.file)
-				imageURl = await awsFileHandler.handleFileUploaded(req.file, 'uploads', 800, 450);
-
-			course.image = imageURl;
-			// use promise all 
-			// create chat group for this course 
-			const courseChatGroup = new groupsModel({
-				groupImage: imageURl,
-				groupName: title,
-				course: course._id,
-				instructor: req.userId
-			})
-
-			course.chatGroupId = courseChatGroup._id;
-
-			await Promise.all([
-				CourseServices.createSessions(course._id, sessions, session),
-				courseChatGroup.save({ session }),
-				course.save({ session })
-			]);
-
-			await session.commitTransaction();
-
-			res.status(201).json({
-				message: `course created successfully with ${sessions?.length || 0} session added`,
-			})
-
 		} catch (err) {
-			await session.abortTransaction();
 			console.log(err);
 			next(err);
 		} finally {
@@ -68,48 +65,45 @@ const courseController = {
 
 	updateCourse: async (req, res, next) => {
 		const session = await mongoose.startSession();
-		session.startTransaction();
 		try {
-			CourseServices.validateRequest(req);
-			const courseId = req.params.id;
-			CourseServices.validateObjectId(courseId);
+			await session.withTransaction(async () => {
+				CourseServices.validateRequest(req);
+				const courseId = req.params.id;
+				CourseServices.validateObjectId(courseId);
 
-			let course = await courseModel.findById(courseId).session(session);
-			if (!course) customErr(404, 'course not found!');
-			// check if has access to update (the course maker )
-			isAuth.isHaveAccess(course.instructor, req.userId);
+				let course = await courseModel.findById(courseId).session(session);
+				if (!course) customErr(404, 'course not found!');
+				// check if has access to update (the course maker )
+				isAuth.isHaveAccess(course.instructor, req.userId);
 
-			const { title, price, topic, level, description, sessions } = req.body;
+				const { title, price, topic, level, description, sessions } = req.body;
 
-			course.title = title;
-			course.price = price;
-			course.topic = topic;
-			course.level = level;
-			course.description = description;
+				course.title = title;
+				course.price = price;
+				course.topic = topic;
+				course.level = level;
+				course.description = description;
 
-			const bulkRes = await CourseServices.putSessions(course._id, sessions, session);
+				const bulkRes = await CourseServices.putSessions(course._id, sessions, session);
 
-			course.sessionsCount = bulkRes.insertedCount + bulkRes.updatedCount;
+				course.sessionsCount = bulkRes.insertedCount + bulkRes.updatedCount;
 
-			if (req.file) {
-				if (course.image != defaultImageUrl)
-					await awsFileHandler.deleteImageFromS3(course.image);
+				if (req.file) {
+					if (course.image != defaultImageUrl)
+						await awsFileHandler.deleteImageFromS3(course.image);
 
-				course.image = await awsFileHandler.handleFileUploaded(req.file, 'uploads', 800, 450);
-			}
+					course.image = await awsFileHandler.handleFileUploaded(req.file, 'uploads', 800, 450);
+				}
 
-			await course.save({ session });
+				await course.save({ session });
 
-			await session.commitTransaction();
-
-			res.status(201).json({
-				status: 200,
-				message: `Course updated successfully with sessions status: (${bulkRes.updatedCount} Updated - ${bulkRes.insertedCount} added - ${bulkRes.deletedCount} deleted)`
+				res.status(201).json({
+					status: 200,
+					message: `Course updated successfully with sessions status: (${bulkRes.updatedCount} Updated - ${bulkRes.insertedCount} added - ${bulkRes.deletedCount} deleted)`
+				})
 			})
-
 		} catch (err) {
 			console.log(err);
-			await session.abortTransaction();
 			next(err);
 		} finally {
 			session.endSession();
@@ -119,26 +113,25 @@ const courseController = {
 
 	deleteCourses: async (req, res, next) => {
 		const session = await mongoose.startSession();
-		session.startTransaction();
 		try {
-			const id = req.params.id;
-			CourseServices.validateObjectId(id);
+			await session.withTransaction(async () => {
+				const id = req.params.id;
+				CourseServices.validateObjectId(id);
 
-			const course = await courseModel.findByIdAndDelete({ _id: id }, { session: session });
-			if (!course) customErr(404, 'Course not found!');
+				const course = await courseModel.findByIdAndDelete({ _id: id }, { session: session });
+				if (!course) customErr(404, 'Course not found!');
 
-			isAuth.isHaveAccess(course.instructor, req.userId);
-			// validate the image not the default one 
-			if (course.image != defaultImageUrl)
-				await awsFileHandler.deleteImageFromS3(course.image);
+				isAuth.isHaveAccess(course.instructor, req.userId);
 
-			await CourseServices.deleteCourseSessions(course._id, session);
+				if (course.image != defaultImageUrl)
+					await awsFileHandler.deleteImageFromS3(course.image);
 
-			await session.commitTransaction();
-			res.status(200).json({ message: "course deleted successfully" });
+				await CourseServices.deleteCourseSessions(course._id, session);
 
+				res.status(200).json({ message: "course deleted successfully" });
+			})
 		} catch (err) {
-			await session.abortTransaction();
+			console.log(err);
 			next(err);
 		} finally {
 			session.endSession();
