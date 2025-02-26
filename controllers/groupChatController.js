@@ -6,6 +6,9 @@ const awsFileHandler = require('../utils/awsFileHandler');
 const io = require('../sockets/socket').getIo();
 const groupsChatServices = require('../services/groupsChatServices');
 const mongoose = require('mongoose');
+
+const sendNotification = require('../config/firebase-admin');
+
 class chatGroupsController {
 
 	static async getGroupsLists(req, res, next) {
@@ -64,7 +67,7 @@ class chatGroupsController {
 				const group = await groupsModel.findById(groupId).session(session);
 
 				if (!group) {
-					customErr(404, 'The message group is missing!');
+					customErr(404, 'The group is missing!');
 				}
 
 				const isInGroup = await userModel.findOne(
@@ -99,7 +102,11 @@ class chatGroupsController {
 					message: message,
 					lastMsgTime: group.lastMsgTime
 				});
+				// get tokens array for group users except sender token to send notification 
+				const tokens = await groupsChatServices.getUsersDeviceToken(groupId, req.userId);
+				console.log('tokens : ', tokens);
 
+				sendNotification(tokens, group.groupName, text, group)
 				res.status(201).json({ message: 'massage sent successfully!' });
 			})
 		} catch (err) {
