@@ -35,6 +35,9 @@ const userSchema = mongoose.Schema({
 		courseChatGroupId: { type: mongoose.Types.ObjectId, required: true, ref: 'groups' },
 		joinedAt: { type: Date, default: Date.now },
 	}],
+	tokenFromAndroid: {
+		type: String,
+	}
 
 }, { timestamps: true })
 

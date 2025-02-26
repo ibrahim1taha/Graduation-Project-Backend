@@ -78,6 +78,14 @@ class groupsChatServices {
 		]);
 	}
 
+	static async getUsersDeviceToken(groupId, userId) {
+		const tokens = await userModel.find({ $and: [{ 'myLearningIds.courseChatGroupId': groupId }, { _id: { $ne: userId } }] },
+			{ _id: 0, tokenFromAndroid: 1 }
+		);
+		const tokensArr = tokens.map(user => user.tokenFromAndroid);
+		return tokensArr;
+	}
+
 }
 
 module.exports = groupsChatServices; 

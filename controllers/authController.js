@@ -9,11 +9,17 @@ const postSignup = async (req, res, next) => {
 
 		authServices.validationRes(req);
 
-		const { userName, email, role, password } = req.body;
+		const { userName, email, role, password, tokenFromAndroid } = req.body;
 
 		const hashedPass = await authServices.hashPassword(password);
 
-		const newUser = new userModel({ userName: userName, email: email, role: role, password: hashedPass });
+		const newUser = new userModel({
+			userName: userName,
+			email: email,
+			role: role,
+			password: hashedPass,
+			tokenFromAndroid: tokenFromAndroid
+		});
 
 		await newUser.save();
 
@@ -31,7 +37,7 @@ const postSignup = async (req, res, next) => {
 }
 
 const postLogin = async (req, res, next) => {
-	const { email, password } = req.body;
+	const { email, password, tokenFromAndroid } = req.body;
 
 	try {
 		authServices.validationRes(req);
@@ -43,6 +49,10 @@ const postLogin = async (req, res, next) => {
 		if (!correctCredentials)
 			customErr(422, "Invalid Email or Password!");
 
+		if (tokenFromAndroid) {
+			user.tokenFromAndroid = tokenFromAndroid;
+			user.save();
+		}
 		if (user.verified) {
 			const token = authServices.generateToken(user);
 			res.status(200).json({
