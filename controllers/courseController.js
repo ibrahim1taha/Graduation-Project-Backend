@@ -39,7 +39,8 @@ const courseController = {
 					groupImage: imageURl,
 					groupName: title,
 					course: course._id,
-					instructor: req.userId
+					instructor: req.userId,
+					traineeCount: course.enrollmentCount
 				})
 
 				course.chatGroupId = courseChatGroup._id;
@@ -212,7 +213,6 @@ const courseController = {
 	},
 
 	getMyLearning: async (req, res, next) => {
-
 		try {
 			const courses = await CourseServices.getJoinedCoursesPipelines(req.userId);
 			if (!courses) customErr(404, 'Not found!');
@@ -230,9 +230,10 @@ const courseController = {
 		try {
 			if (!courseId || !courseCode) customErr(400, 'Course ID and course code are required.');
 
-			const [user, course] = await Promise.all([
+			const [user, course, group] = await Promise.all([
 				userModel.findById(req.userId).exec(),
-				courseModel.findById(courseId).exec()
+				courseModel.findById(courseId).exec(),
+				groupsModel.findOne({ course: courseId }).exec()
 			])
 
 			if (!user) customErr(404, 'user not found! ');
@@ -245,10 +246,11 @@ const courseController = {
 			console.log(course.chatGroupId)
 			user.myLearningIds.push({ courseId: course._id, courseChatGroupId: course.chatGroupId });
 			course.enrollmentCount += 1;
-
+			group.traineeCount += 1;
 			await Promise.all([
 				user.save(),
-				course.save()
+				course.save(),
+				group.save()
 			])
 
 			res.status(201).json({
