@@ -55,6 +55,13 @@ const postLogin = async (req, res, next) => {
 		}
 		if (user.verified) {
 			const token = authServices.generateToken(user);
+
+			if (user.role = 'instructor') {
+				// add instructor'courses Ids to myLearningIds to make it easy to access in front end .
+				const instructorGroups = await authServices.getInstructorGroups(user._id);
+				instructorGroups.forEach((obj) => user.myLearningIds.push(obj));
+			}
+
 			res.status(200).json({
 				message: 'Login successful.',
 				user,

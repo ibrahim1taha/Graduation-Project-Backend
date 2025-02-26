@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const otpModel = require('../models/otp');
 const sendOTPEmail = require('../utils/sendOTPEmail');
+const groupsModel = require('../models/groups');
 
 class AuthServices {
 	static validationRes = (req) => {
@@ -23,6 +24,11 @@ class AuthServices {
 	static decodePassword = async (password, user) => {
 		const isPassMatch = await bcrypt.compare(password, user.password);
 		return isPassMatch;
+	}
+
+	static async getInstructorGroups(userId) {
+		const groups = groupsModel.find({ instructor: userId }, { courseChatGroupId: '$_id', _id: 0 });
+		return groups;
 	}
 
 	static sendOTP = async (user) => {

@@ -53,6 +53,8 @@ const courseController = {
 
 				res.status(201).json({
 					message: `course created successfully with ${sessions?.length || 0} session added`,
+					courseId: course._id,
+					groupChatId: courseChatGroup._id
 				})
 			})
 		} catch (err) {
@@ -254,7 +256,9 @@ const courseController = {
 			])
 
 			res.status(201).json({
-				message: 'Congratulations, you have successfully joined the course!'
+				message: 'Congratulations, you have successfully joined the course!',
+				courseId: course._id,
+				groupChatId: group._id
 			})
 
 		} catch (err) {
