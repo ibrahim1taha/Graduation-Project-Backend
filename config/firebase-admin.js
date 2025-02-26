@@ -5,10 +5,11 @@ admin.initializeApp({
 	credential: admin.credential.cert(serviceAccount),
 });
 
-const sendNotification = async (tokens, title, body, data) => {
+const sendNotification = async (tokens, senderName, title, text, data) => {
+	const body = `${senderName}: ${text}`;
 	const message = {
 		notification: { title, body },
-		tokens: tokens, // Array of FCM tokens, 
+		tokens: tokens,
 		data: data
 	};
 

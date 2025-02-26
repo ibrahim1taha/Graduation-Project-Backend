@@ -64,8 +64,11 @@ class chatGroupsController {
 					customErr(400, 'Message text cannot be empty.');
 				}
 
-				const group = await groupsModel.findById(groupId).session(session);
+				const [group, user] = await Promise.all([
+					groupsModel.findById(groupId).session(session),
+					userModel.findById(req.userId).session(session),
 
+				])
 				if (!group) {
 					customErr(404, 'The group is missing!');
 				}
@@ -106,7 +109,12 @@ class chatGroupsController {
 				const tokens = await groupsChatServices.getUsersDeviceToken(groupId, req.userId);
 				console.log('tokens : ', tokens);
 
-				sendNotification(tokens, group.groupName, text, group)
+				sendNotification(tokens, user.userName, group.groupName, text, {
+					groupId: groupId.toString(),
+					groupName: group.groupName,
+					traineeCount: group.traineeCount.toString(),
+					instructorId: group.instructor.toString()
+				})
 				res.status(201).json({ message: 'massage sent successfully!' });
 			})
 		} catch (err) {
