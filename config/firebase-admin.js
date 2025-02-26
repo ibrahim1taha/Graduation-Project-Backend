@@ -5,16 +5,16 @@ admin.initializeApp({
 	credential: admin.credential.cert(serviceAccount),
 });
 
-const sendNotification = async (tokens, senderName, title, text, data) => {
+const sendNotification = async (groupId, senderName, title, text, data) => {
 	const body = `${senderName}: ${text}`;
 	const message = {
 		notification: { title, body },
-		tokens: tokens,
+		topic: groupId,
 		data: data
 	};
 
 	try {
-		const response = await admin.messaging().sendEachForMulticast(message);
+		const response = await admin.messaging().send(message);
 		console.log("Successfully sent message:", response);
 	} catch (error) {
 		console.log("Error sending message:", error);

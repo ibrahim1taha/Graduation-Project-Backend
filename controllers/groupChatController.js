@@ -106,10 +106,10 @@ class chatGroupsController {
 					lastMsgTime: group.lastMsgTime
 				});
 				// get tokens array for group users except sender token to send notification 
-				const tokens = await groupsChatServices.getUsersDeviceToken(groupId, req.userId);
-				console.log('tokens : ', tokens);
+				// const tokens = await groupsChatServices.getUsersDeviceToken(groupId, req.userId);
+				// console.log('tokens : ', tokens);
 
-				sendNotification(tokens, user.userName, group.groupName, text, {
+				sendNotification(groupId, user.userName, group.groupName, text, {
 					groupId: groupId.toString(),
 					groupName: group.groupName,
 					traineeCount: group.traineeCount.toString(),
