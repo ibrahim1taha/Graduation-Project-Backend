@@ -9,7 +9,7 @@ const postSignup = async (req, res, next) => {
 
 		authServices.validationRes(req);
 
-		const { userName, email, role, password, tokenFromAndroid } = req.body;
+		const { userName, email, role, password } = req.body;
 
 		const hashedPass = await authServices.hashPassword(password);
 
@@ -18,7 +18,7 @@ const postSignup = async (req, res, next) => {
 			email: email,
 			role: role,
 			password: hashedPass,
-			tokenFromAndroid: tokenFromAndroid
+			// tokenFromAndroid: tokenFromAndroid
 		});
 
 		await newUser.save();
@@ -49,10 +49,10 @@ const postLogin = async (req, res, next) => {
 		if (!correctCredentials)
 			customErr(422, "Invalid Email or Password!");
 
-		if (tokenFromAndroid) {
-			user.tokenFromAndroid = tokenFromAndroid;
-			user.save();
-		}
+		// if (tokenFromAndroid) {
+		// 	user.tokenFromAndroid = tokenFromAndroid;
+		// 	user.save();
+		// }
 		if (user.verified) {
 			const token = authServices.generateToken(user);
 
