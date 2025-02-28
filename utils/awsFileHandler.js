@@ -1,6 +1,6 @@
 const s3 = require('../config/s3Configuration');
 const { PutObjectCommand } = require('@aws-sdk/client-s3');
-const { DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const { DeleteObjectCommand, DeleteObjectsCommand } = require('@aws-sdk/client-s3');
 const { Upload } = require('@aws-sdk/lib-storage');
 const customErr = require('../utils/customErr')
 const sharpImage = require('../utils/sharpImage');
@@ -11,7 +11,7 @@ const AWS_REGION = 'eu-north-1';
 const handleFileUploaded = async (file, folderName, width, height) => {
 
 	try {
-		if (file.size > (1024 * 1024)) customErr(422, 'Maximum image size is 1MB', 'image'); // send as string 422 
+		if (file.size > (1024 * 1024)) customErr(422, 'Maximum image size is 1MB', 'image');
 		// share image to 800 * 450 px 
 		const fileBuffer = await sharpImage(file.buffer, width, height);
 
@@ -34,8 +34,8 @@ const handleFileUploaded = async (file, folderName, width, height) => {
 		// await s3.send(new PutObjectCommand(params));
 		return `https://${S3_BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/${params.Key}`;
 	} catch (err) {
-		console.log(err);
-		throw new Error('Something went wrong while uploading the image')
+		console.log(err.message);
+		throw err
 	}
 
 }
@@ -43,7 +43,7 @@ const handleFileUploaded = async (file, folderName, width, height) => {
 
 const deleteImageFromS3 = async (key) => {
 
-	if (!key) {
+	if (!key || key === 'undefined') {
 		throw new Error('Invalid or missing S3 object key');
 	}
 
@@ -64,5 +64,28 @@ const deleteImageFromS3 = async (key) => {
 	}
 }
 
+const deleteImagesFromS3 = async (keysArr) => {
 
-module.exports = { handleFileUploaded, deleteImageFromS3 }
+	if (!keysArr) {
+		throw new Error('Invalid or missing S3 objects keys');
+	}
+
+	try {
+		const params = {
+			Bucket: S3_BUCKET_NAME,
+			Delete: {
+				Objects: keysArr
+			},
+			Quiet: true
+		}
+
+		const command = new DeleteObjectsCommand(params);
+
+		await s3.send(command);
+	} catch (err) {
+		throw new Error(`Error deleting objects from S3`);
+	}
+}
+
+
+module.exports = { handleFileUploaded, deleteImageFromS3, deleteImagesFromS3 }
