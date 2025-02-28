@@ -43,7 +43,7 @@ const handleFileUploaded = async (file, folderName, width, height) => {
 
 const deleteImageFromS3 = async (key) => {
 
-	if (!key) {
+	if (!key || key === 'undefined') {
 		throw new Error('Invalid or missing S3 object key');
 	}
 

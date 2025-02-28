@@ -8,7 +8,11 @@ const awsFileHandler = require('../utils/awsFileHandler');
 
 const customErr = require('../utils/customErr');
 const ProfileServices = require('../services/profileServices');
+const { default: mongoose } = require('mongoose');
+
+const defaultPhoto = 'https://grad-proj-images.s3.eu-north-1.amazonaws.com/profile/defaultProfile.png';
 class ProfileController {
+
 	static async getMyProfile(req, res, next) {
 		try {
 			const profile = await ProfileServices.getUser(req.userId)
@@ -21,7 +25,7 @@ class ProfileController {
 			next(err);
 		}
 	}
-
+	// get instructor with his course -> should be get this page if click on instructor name in any place
 	static async getInstructorProfile(req, res, next) {
 		const userId = req.params.instructorId
 		try {
@@ -39,27 +43,93 @@ class ProfileController {
 	}
 
 	static async updateProfile(req, res, next) {
-		let { userPhoto, userName, bio, role } = req.body;
+		let { userName, bio, role } = req.body;
 		try {
 			if (!req.userId) customErr(500, 'User id lost!')
-			if (req.file)
-				userPhoto = await awsFileHandler.handleFileUploaded(req.file, 'profile', 300, 300);
 
-			await userModel.findByIdAndUpdate(req.userId, {
-				userPhoto: userPhoto,
+			if (role === 'trainee' && req.userRole === 'instructor')
+				customErr(404, 'Sorry, Instructor account can not be trainee account');
+
+			const updatedUser = await userModel.findByIdAndUpdate(req.userId, {
 				userName: userName,
 				bio: bio,
 				role: role
-			});
+			}, { new: true, select: '-myLearningIds -password' });
+
+			if (!updatedUser) customErr(404, 'Failed to update profile , User not found!');
 
 			res.status(201).json({
-				message: 'user profile updated successfully!'
+				success: true,
+				message: 'Profile updated successfully!',
+				updatedUser
+			})
+
+		} catch (err) {
+			console.log(err);
+			next(err);
+		}
+	};
+
+	static async UploadUserProfilePhoto(req, res, next) {
+		const session = await mongoose.startSession()
+		try {
+			await session.withTransaction(async () => {
+				if (!req.userId) customErr(404, 'Can not update profile photo , User not found!');
+				if (!req.file) customErr(500, 'file missed');
+
+				const userPhoto = await awsFileHandler.handleFileUploaded(req.file, 'profile', 300, 300);
+				if (!userPhoto) customErr(500, 'file missed');
+
+				const user = await userModel.findById(req.userId, { myLearningIds: 0, password: 0 })
+				if (!user) customErr(404, 'Upload profile photo failed , user not found!');
+
+				if (user.userPhoto && user.userPhoto !== defaultPhoto)
+					await awsFileHandler.deleteImageFromS3(user.userPhoto);
+
+				user.userPhoto = userPhoto;
+				await user.save();
+
+				res.status(201).json({
+					success: true,
+					message: 'Profile photo uploaded successfully!',
+					user
+				})
+			})
+		} catch (err) {
+			console.log(err);
+			next(err);
+		} finally {
+			session.endSession();
+		}
+	}
+
+
+	static async delUserProfilePhoto(req, res, next) {
+		try {
+			if (!req.userId) customErr(404, 'Can not update profile photo , User not found!');
+
+			const user = await userModel.findById(req.userId, { myLearningIds: 0, password: 0 })
+
+			if (!user) customErr(404, 'Delete profile photo failed , user not found!');
+
+			if (user.userPhoto && user.userPhoto !== defaultPhoto)
+				await awsFileHandler.deleteImageFromS3(user.userPhoto);
+
+			user.userPhoto = defaultPhoto;
+			await user.save();
+
+			res.status(201).json({
+				success: true,
+				message: 'Profile photo deleted successfully!',
+				user
 			})
 		} catch (err) {
 			console.log(err);
 			next(err);
 		}
+
 	}
+
 	static async deleteUserAcc(req, res, next) {
 		try {
 			if (!req.userId) customErr(500, 'User id lost!');
@@ -70,11 +140,15 @@ class ProfileController {
 				const userCourses = await ProfileServices.getInstructorCourses(req.userId);
 				const [coursesIds, groupsId, imagesKeys] = userCourses.reduce((
 					[coursesIdsArr, groupsIdsArr, imagesKeysArr], course) => {
+
 					const url = new URL(course.image);
 					const key = url.pathname.substring(1);
+
 					coursesIdsArr.push(course._id);
+
 					if (key !== 'uploads/defaultImage.png') imagesKeysArr.push({ Key: key });
 					groupsIdsArr.push(course.chatGroupId);
+
 					return [coursesIdsArr, groupsIdsArr, imagesKeysArr]
 				}, [[], [], []]);
 
