@@ -269,94 +269,24 @@ const courseController = {
 
 
 	searchCourses: async (req, res, next) => {
-		let { search } = req.body || 'production';
+		let { search } = req.body;
 		const socketId = req.headers['socket-id'];
 		try {
+			const [users, courses] = await Promise.all([
+				userModel.aggregate(CourseServices.userSearchPipelines(search)),
+				courseModel.aggregate(CourseServices.courseSearchPipeline(search))
+			]);
 
-			const searchResult = await courseModel.aggregate([
-				{
-					"$search": {
-						"index": "default",
-						"text": {
-							"query": search, // Replace with your search term
-							"path": ["title", "topic", 'description']
-						}
-					}
-				},
-				{ $limit: 10 },
-				{
-					$lookup: {
-						from: 'users',
-						localField: 'instructor',
-						foreignField: '_id',
-						as: 'instructor'
-					}
-				},
-				{ $unwind: '$instructor' },
-				{ $project: { _id: 1, title: 1, topic: 1, instructor: '$instructor.userName' } }
-			])
-			if (!searchResult) customErr(404, 'Not found!');
+			if (!users || !courses) customErr(404, 'Not found!');
+
+			const searchResult = users.concat(courses);
+
 			io.to(socketId).emit('search', { searchResult });
 			res.status(200).json(searchResult)
 		} catch (err) {
 			next(err);
 		}
 	}
-
-	// retrieve home page course grouped by types and "recommended for u" category
-	// /courses/popular
-	// getPopularCourses: async (req, res, next) => {
-	// 	try {
-	// 		const popCourses = await CourseServices.getCourses({}, { enrollmentCount: -1 }, 5);
-	// 		res.status(200).json(popCourses);
-	// 	} catch (err) {
-	// 		next(err);
-	// 	}
-	// },
-
-	// // courses/new 
-	// getNewCourses: async (req, res, next) => {
-	// 	try {
-	// 		const newCourses = await CourseServices.getCourses({}, { createdAt: -1 }, 5);
-	// 		res.status(200).json(newCourses);
-	// 	} catch (err) {
-	// 		next(err);
-	// 	}
-	// },
-
-	// // courses/topics // get courses grouped by topics 
-	// getCoursesWithTopics: async (req, res, next) => {
-	// 	try {
-	// 		const topics = await CourseServices.getCoursesGroupedByTopic();
-
-	// 		if (!topics || topics.length === 0) customErr(404, 'something went wrong , no courses found!');
-
-	// 		res.status(200).json(topics);
-
-	// 	} catch (err) {
-	// 		next(err);
-	// 	}
-	// },
-
-
-	// dltAllCoursesWithImgs: async (req, res, next) => {
-	// 	try {
-
-	// 		const courses = await courseModel.find({});
-	// 		if (!courses) customErr(404, 'Course not found!');
-
-	// 		courses.map(async course => {
-	// 			const imageID = path.basename(course.image);
-	// 			await courseModel.deleteOne(course._id);
-	// 			if (imageID != 'defaultImage.png') await CourseServices.deleteCourseImage(imageID);
-	// 		})
-
-	// 		res.status(200).json({ message: "All courses deleted!" });
-
-	// 	} catch (err) {
-	// 		next(err);
-	// 	}
-	// },
 }
 
 module.exports = courseController; 

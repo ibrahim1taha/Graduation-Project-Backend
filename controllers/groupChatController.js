@@ -19,7 +19,7 @@ class chatGroupsController {
 
 			if (!groupList) customErr(404, 'No groups found, you must join a course to see its group here!');
 
-			res.status(200).json(groupList[0]);
+			res.status(200).json(groupList[0] ? groupList[0] : []);
 
 		} catch (err) {
 			console.log(err);

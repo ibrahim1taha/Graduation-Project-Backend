@@ -42,7 +42,6 @@ const handleFileUploaded = async (file, folderName, width, height) => {
 
 
 const deleteImageFromS3 = async (key) => {
-
 	if (!key || key === 'undefined') {
 		throw new Error('Invalid or missing S3 object key');
 	}
@@ -50,18 +49,15 @@ const deleteImageFromS3 = async (key) => {
 	const url = new URL(key);
 	const Key = url.pathname.substring(1);
 
-	try {
-		const params = {
-			Bucket: S3_BUCKET_NAME,
-			Key: Key
-		}
 
-		const command = new DeleteObjectCommand(params);
-
-		await s3.send(command);
-	} catch (err) {
-		throw new Error(`Error deleting object from S3`);
+	const params = {
+		Bucket: S3_BUCKET_NAME,
+		Key: Key
 	}
+
+	const command = new DeleteObjectCommand(params);
+
+	await s3.send(command);
 }
 
 const deleteImagesFromS3 = async (keysArr) => {
@@ -70,21 +66,18 @@ const deleteImagesFromS3 = async (keysArr) => {
 		throw new Error('Invalid or missing S3 objects keys');
 	}
 
-	try {
-		const params = {
-			Bucket: S3_BUCKET_NAME,
-			Delete: {
-				Objects: keysArr
-			},
-			Quiet: true
-		}
+	const params = {
+		Bucket: S3_BUCKET_NAME,
+		Delete: {
+			Objects: keysArr // : {{ Key : Url} , {Key : Url}}
 
-		const command = new DeleteObjectsCommand(params);
-
-		await s3.send(command);
-	} catch (err) {
-		throw new Error(`Error deleting objects from S3`);
+		},
+		Quiet: true
 	}
+
+	const command = new DeleteObjectsCommand(params);
+
+	await s3.send(command);
 }
 
 

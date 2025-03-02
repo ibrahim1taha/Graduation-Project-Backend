@@ -3,9 +3,8 @@ const sessionsModel = require('../models/sessions');
 const userModel = require('../models/users');
 const groupsModel = require('../models/groups');
 const messageModel = require('../models/messages');
-
 const awsFileHandler = require('../utils/awsFileHandler');
-
+const authService = require('../services/authServices');
 const customErr = require('../utils/customErr');
 const ProfileServices = require('../services/profileServices');
 const { default: mongoose } = require('mongoose');
@@ -57,11 +56,14 @@ class ProfileController {
 			}, { new: true, select: '-myLearningIds -password' });
 
 			if (!updatedUser) customErr(404, 'Failed to update profile , User not found!');
+			console.log(updatedUser);
+			const newToken = authService.generateToken(updatedUser);
 
 			res.status(201).json({
 				success: true,
 				message: 'Profile updated successfully!',
-				updatedUser
+				updatedUser,
+				token: newToken
 			})
 
 		} catch (err) {
@@ -103,7 +105,6 @@ class ProfileController {
 		}
 	}
 
-
 	static async delUserProfilePhoto(req, res, next) {
 		try {
 			if (!req.userId) customErr(404, 'Can not update profile photo , User not found!');
@@ -131,13 +132,18 @@ class ProfileController {
 	}
 
 	static async deleteUserAcc(req, res, next) {
+		const session = await mongoose.startSession();
 		try {
-			if (!req.userId) customErr(500, 'User id lost!');
-			if (req.userRole !== 'instructor') {
-				await userModel.findByIdAndDelete(req.userId)
-			}
-			else {
+			await session.withTransaction(async () => {
+				if (!req.userId) customErr(500, 'User id lost!');
+				if (req.userRole !== 'instructor') {
+					const user = await userModel.findByIdAndDelete(req.userId, { session })
+					if (user.userPhoto !== defaultPhoto)
+						await awsFileHandler.deleteImageFromS3(user.userPhoto);
+					return;
+				}
 				const userCourses = await ProfileServices.getInstructorCourses(req.userId);
+
 				const [coursesIds, groupsId, imagesKeys] = userCourses.reduce((
 					[coursesIdsArr, groupsIdsArr, imagesKeysArr], course) => {
 
@@ -152,15 +158,31 @@ class ProfileController {
 					return [coursesIdsArr, groupsIdsArr, imagesKeysArr]
 				}, [[], [], []]);
 
+				const groupsMsgs = await messageModel.find({ groupId: { $in: groupsId } });
+
+				const groupsMsgsIdsArr = groupsMsgs.reduce((groupsIdsArr, msg) => {
+					if (msg.msgImage) {
+						const url = new URL(msg.msgImage);
+						const imageUrl = url.pathname.substring(1);
+						groupsIdsArr.push({ Key: imageUrl });
+					}
+					return groupsIdsArr
+				}, []);
+
+
+				const user = await userModel.findByIdAndDelete(req.userId, { session });
+				if (user.userPhoto !== defaultPhoto)
+					await awsFileHandler.deleteImageFromS3(user.userPhoto);
+
 				await Promise.all([
-					sessionsModel.deleteMany({ courseId: { $in: coursesIds } }),
-					messageModel.deleteMany({ groupId: { $in: groupsId } }),
-					groupsModel.deleteMany({ _id: { $in: groupsId } }),
-					courseModel.deleteMany({ _id: { $in: coursesIds } }),
-					userModel.findByIdAndDelete(req.userId),
-					awsFileHandler.deleteImagesFromS3(imagesKeys)
+					await awsFileHandler.deleteImagesFromS3(groupsMsgsIdsArr),
+					await awsFileHandler.deleteImagesFromS3(imagesKeys),
+					sessionsModel.deleteMany({ courseId: { $in: coursesIds } }, { session }),
+					messageModel.deleteMany({ groupId: { $in: groupsId } }, { session }),
+					groupsModel.deleteMany({ _id: { $in: groupsId } }, { session }),
+					courseModel.deleteMany({ _id: { $in: coursesIds } }, { session }),
 				])
-			}
+			})
 			res.status(200).json({ success: true, message: 'Account deleted successfully' })
 		} catch (err) {
 			console.log(err);

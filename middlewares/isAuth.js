@@ -19,7 +19,7 @@ const authorized = async (req, res, next) => {
 
 		const user = await userModel.findById(userId);
 
-		if (!user) customErr(404, "user not found !");
+		if (!user) customErr(404, "User not found!");
 
 		req.userId = userId;
 		req.userRole = decodedToken.role;

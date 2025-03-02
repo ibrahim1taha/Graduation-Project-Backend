@@ -47,7 +47,6 @@ class CourseServices {
 	}
 	// create or update session on update course endpoint 
 	static async putSessions(courseId, sessions, transactionsSession) {
-
 		if (!Array.isArray(sessions) || sessions.length < 2) {
 			throw new Error('You must have at least 2 sessions to update the course!')
 		}
@@ -273,6 +272,47 @@ class CourseServices {
 		return courses;
 	}
 
+	static userSearchPipelines(search) {
+		return [
+			{
+				"$search": {
+					"index": "default",
+					"text": {
+						"query": search, // Replace with your search term
+						"path": ["userName", "role", 'bio']
+					}
+				}
+			},
+			{ $limit: 5 },
+			{ $project: { _id: 1, userName: 1, role: 1, bio: 1 } }
+		]
+
+	}
+
+	static courseSearchPipeline(search) {
+		return [
+			{
+				"$search": {
+					"index": "default",
+					"text": {
+						"query": search, // Replace with your search term
+						"path": ["title", "topic", 'description']
+					}
+				}
+			},
+			{ $limit: 10 },
+			{
+				$lookup: {
+					from: 'users',
+					localField: 'instructor',
+					foreignField: '_id',
+					as: 'instructor'
+				}
+			},
+			{ $unwind: '$instructor' },
+			{ $project: { _id: 1, title: 1, topic: 1, instructor: '$instructor.userName' } }
+		]
+	}
 }
 
 

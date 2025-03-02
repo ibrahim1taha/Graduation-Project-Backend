@@ -2,7 +2,7 @@ const courseModel = require('../models/courses');
 const sessionsModel = require('../models/sessions');
 const userModel = require('../models/users');
 const groupsModel = require('../models/groups');
-
+const awsFileHandler = require('../utils/awsFileHandler');
 const customErr = require('../utils/customErr');
 
 class ProfileServices {
@@ -18,6 +18,7 @@ class ProfileServices {
 
 		return courses;
 	}
+
 }
 
 module.exports = ProfileServices; 
