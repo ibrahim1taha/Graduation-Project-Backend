@@ -174,16 +174,17 @@ class ProfileController {
 				if (user.userPhoto !== defaultPhoto)
 					await awsFileHandler.deleteImageFromS3(user.userPhoto);
 
+				if (groupsMsgsIdsArr.length > 0) await awsFileHandler.deleteImagesFromS3(groupsMsgsIdsArr);
+				if (imagesKeys.length > 0) await awsFileHandler.deleteImagesFromS3(imagesKeys);
+
 				await Promise.all([
-					await awsFileHandler.deleteImagesFromS3(groupsMsgsIdsArr),
-					await awsFileHandler.deleteImagesFromS3(imagesKeys),
 					sessionsModel.deleteMany({ courseId: { $in: coursesIds } }, { session }),
 					messageModel.deleteMany({ groupId: { $in: groupsId } }, { session }),
 					groupsModel.deleteMany({ _id: { $in: groupsId } }, { session }),
 					courseModel.deleteMany({ _id: { $in: coursesIds } }, { session }),
 				])
 			})
-			res.status(200).json({ success: true, message: 'Account deleted successfully' })
+			res.status(200).json({ success: true, message: 'Account deleted successfully!' })
 		} catch (err) {
 			console.log(err);
 			next(err);
