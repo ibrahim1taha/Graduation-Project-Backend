@@ -70,7 +70,6 @@ const deleteImagesFromS3 = async (keysArr) => {
 		Bucket: S3_BUCKET_NAME,
 		Delete: {
 			Objects: keysArr // : {{ Key : Url} , {Key : Url}}
-
 		},
 		Quiet: true
 	}

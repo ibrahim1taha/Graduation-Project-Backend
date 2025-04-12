@@ -2,9 +2,11 @@ const courseModel = require('../models/courses');
 const sessionsModel = require('../models/sessions');
 const userModel = require('../models/users');
 const groupsModel = require('../models/groups');
+const messagesModel = require('../models/messages');
 const customErr = require('../utils/customErr');
 const path = require('path');
 const CourseServices = require('../services/courseServices');
+const GroupServices = require('../services/groupsChatServices');
 const mongoose = require('mongoose');
 const isAuth = require('../middlewares/isAuth');
 const awsFileHandler = require('../utils/awsFileHandler');
@@ -68,14 +70,16 @@ const courseController = {
 
 	updateCourse: async (req, res, next) => {
 		const session = await mongoose.startSession();
+		const courseId = req.params.id;
 		try {
 			await session.withTransaction(async () => {
 				CourseServices.validateRequest(req);
-				const courseId = req.params.id;
 				CourseServices.validateObjectId(courseId);
 
 				let course = await courseModel.findById(courseId).session(session);
-				if (!course) customErr(404, 'course not found!');
+				let theGroupOfThisCourse = await groupsModel.findOne({ course: courseId });
+
+				if (!course || !theGroupOfThisCourse) customErr(404, 'The course not found or course group not found!');
 				// check if has access to update (the course maker )
 				isAuth.isHaveAccess(course.instructor, req.userId);
 
@@ -87,6 +91,8 @@ const courseController = {
 				course.level = level;
 				course.description = description;
 
+				theGroupOfThisCourse.groupName = title;
+
 				const bulkRes = await CourseServices.putSessions(course._id, sessions, session);
 
 				course.sessionsCount = bulkRes.insertedCount + bulkRes.updatedCount;
@@ -95,10 +101,15 @@ const courseController = {
 					if (course.image != defaultImageUrl)
 						await awsFileHandler.deleteImageFromS3(course.image);
 
-					course.image = await awsFileHandler.handleFileUploaded(req.file, 'uploads', 800, 450);
+					const updatedImg = await awsFileHandler.handleFileUploaded(req.file, 'uploads', 800, 450);
+					course.image = updatedImg;
+					theGroupOfThisCourse.groupImage = updatedImg;
 				}
 
-				await course.save({ session });
+				await Promise.all([
+					course.save({ session }),
+					theGroupOfThisCourse.save({ session })
+				]);
 
 				res.status(201).json({
 					status: 200,
@@ -115,13 +126,16 @@ const courseController = {
 	},
 
 	deleteCourses: async (req, res, next) => {
+		const id = req.params.id;
+		console.log(id);
 		const session = await mongoose.startSession();
 		try {
 			await session.withTransaction(async () => {
-				const id = req.params.id;
 				CourseServices.validateObjectId(id);
 
 				const course = await courseModel.findByIdAndDelete({ _id: id }, { session: session });
+				const theGroupOfThisCourse = await groupsModel.findOne({ course: id });
+				console.log(theGroupOfThisCourse)
 				if (!course) customErr(404, 'Course not found!');
 
 				isAuth.isHaveAccess(course.instructor, req.userId);
@@ -129,7 +143,11 @@ const courseController = {
 				if (course.image != defaultImageUrl)
 					await awsFileHandler.deleteImageFromS3(course.image);
 
-				await CourseServices.deleteCourseSessions(course._id, session);
+				await Promise.all([
+					theGroupOfThisCourse.deleteOne({ session: session }),
+					CourseServices.deleteCourseSessions(course._id, session),
+					GroupServices.delGroupChat(theGroupOfThisCourse._id, session)
+				])
 
 				res.status(200).json({ message: "course deleted successfully" });
 			})
@@ -202,8 +220,8 @@ const courseController = {
 		try {
 			const courses = await courseModel.find(
 				{ instructor: req.userId },
-				{ trainees: 0, sessions: 0, createdAt: 0, updatedAt: 0 }
-			);
+				{ trainees: 0, sessions: 0, updatedAt: 0 }
+			).sort({ createdAt: -1 });
 
 			if (!courses) customErr(404, "Not found!");
 

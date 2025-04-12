@@ -283,6 +283,11 @@ class CourseServices {
 					}
 				}
 			},
+			{
+				"$match": {
+					"role": { $ne: "trainee" }
+				}
+			},
 			{ $limit: 5 },
 			{ $project: { _id: 1, userName: 1, role: 1, bio: 1 } }
 		]

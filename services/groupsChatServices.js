@@ -78,6 +78,24 @@ class groupsChatServices {
 		]);
 	}
 
+	static async delGroupChat(groupId, transactionsSession) {
+		const allMessages = await messageModel.find({ groupId: groupId });
+
+		const imgsUrlArr = allMessages.reduce((Urls, msg) => {
+			if (msg.msgImage) {
+				const url = new URL(msg.msgImage);
+				const key = url.pathname.substring(1);
+				Urls.push({ Key: key });
+			}
+
+			return Urls;
+		}, []);
+
+		await messageModel.deleteMany({ groupId: groupId }, { session: transactionsSession });
+		console.log(imgsUrlArr)
+		await awsFileHandler.deleteImagesFromS3(imgsUrlArr)
+	}
+
 	static async getUsersDeviceToken(groupId, userId) {
 		const tokens = await userModel.find({ $and: [{ 'myLearningIds.courseChatGroupId': groupId }, { _id: { $ne: userId } }] },
 			{ _id: 0, tokenFromAndroid: 1 }
@@ -85,6 +103,7 @@ class groupsChatServices {
 		const tokensArr = tokens.map(user => user.tokenFromAndroid);
 		return tokensArr;
 	}
+
 
 }
 
