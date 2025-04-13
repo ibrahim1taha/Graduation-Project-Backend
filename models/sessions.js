@@ -12,11 +12,16 @@ const sessionsSchema = mongoose.Schema({
 	status: {
 		type: String,
 		enum: {
-			values: ['scheduled', 'ready', 'running', 'ended']
+			values: ['scheduled', 'running', 'ended']
 		},
 		default: 'scheduled'
 	},
-	attendance: [{ type: mongoose.Types.ObjectId, ref: 'Users' }],
+	// attendance: [{ type: mongoose.Types.ObjectId, ref: 'Users' }],
+	attendance: [{
+		userId: { type: mongoose.Types.ObjectId },
+		userName: { type: String },
+		role: { type: String }
+	}],
 
 }, { timestamps: true })
 

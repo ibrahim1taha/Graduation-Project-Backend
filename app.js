@@ -18,6 +18,7 @@ const io = socket.getIo();
 socketHandler(io);
 const authRouter = require('./routes/authRoutes');
 const coursesRouter = require('./routes/courseRoutes');
+const liveSessionRouter = require('./routes/liveSessionRoutes');
 const groupChatRouter = require('./routes/groupChatRoutes');
 const profileRouter = require('./routes/profileRoutes');
 
@@ -31,6 +32,7 @@ app.use('/image', express.static(path.join(__dirname, 'public/images')));
 
 app.use('/courses', coursesRouter);
 app.use('/groups', groupChatRouter);
+app.use('/sessions', liveSessionRouter);
 app.use('/profile', profileRouter);
 app.use('/auth', authRouter);
 

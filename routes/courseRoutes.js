@@ -52,11 +52,7 @@ router.get('/search', courseController.searchCourses)
 // join course 
 router.post('/join/:courseId', isAuth.authorized, courseController.joinCourse);
 
-// instructor join the session -> update the session status 
 
-// trainee join the session
-
-// end the session
 
 
 
