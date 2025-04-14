@@ -45,7 +45,7 @@ class liveSessionController {
 
 			await session.save();
 
-			socket.to(sessionId).emit('one-leaved-session', session.attendance);
+			socket.to(sessionId).emit('one-leaved-session', userId);
 		} catch (err) {
 			socket.emit('error', 'Can not leave the session!');
 			console.log(err);
