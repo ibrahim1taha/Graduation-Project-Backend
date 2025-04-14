@@ -29,14 +29,15 @@ module.exports = (io) => {
 		})
 
 		socket.on('offer', data => {
-			socket.to(data.sessionId).emit('offer', data);
+			io.to(data.sessionId).emit('offer', data);
 		})
 
 		socket.on('ice-candidate', data => {
 			socket.to(data.sessionId).emit('ice-candidate', data);
 		})
+
 		socket.on('answer', data => {
-			socket.to(data.sessionId).emit('answer', data);
+			io.to(data.sessionId).emit('answer', data);
 		})
 
 		socket.on('end-live-session', async ({ sessionId, userId }) => {
