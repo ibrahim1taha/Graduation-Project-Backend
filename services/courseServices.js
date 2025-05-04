@@ -147,6 +147,7 @@ class CourseServices {
 						sessions: {
 							_id: 1,
 							title: 1,
+							status: 1,
 							startDate: 1
 						}
 					}

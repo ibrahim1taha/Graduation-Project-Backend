@@ -12,7 +12,7 @@ const sessionsSchema = mongoose.Schema({
 	status: {
 		type: String,
 		enum: {
-			values: ['scheduled', 'running', 'ended']
+			values: ['scheduled', 'running', 'ended-reopen', 'ended-summary']
 		},
 		default: 'scheduled'
 	},

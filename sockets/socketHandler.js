@@ -6,10 +6,15 @@ module.exports = (io) => {
 	io.on('connection', socket => {
 		console.log(`${socket.id} connected`);
 
-		// join chat room
-		socket.on('joinRooms', (groups) => {
+		// join chat groups room take array of groups IDs
+		socket.on('joinGroupsRooms', (groups) => {
 			socket.join(groups.groupsId);
 			console.log(groups.groupsId);
+		})
+		// general room joining. 
+		socket.on('joinRoom', (key) => {
+			socket.join(key);
+			console.log(key + " joined room");
 		})
 
 		socket.on('leaveRoom', (groupId) => {
@@ -21,7 +26,7 @@ module.exports = (io) => {
 
 		socket.on('join-session-room', async ({ sessionId, userId }) => {
 			socket.join(sessionId);
-			await liveSessionController.joinLiveSession(sessionId, userId, socket); //include emit ->  user-connected , existing-users
+			await liveSessionController.joinLiveSession(sessionId, userId, socket, io); //include emit ->  user-connected , existing-users
 		})
 
 		socket.on('media-control', data => {
@@ -40,13 +45,19 @@ module.exports = (io) => {
 			io.to(data.sessionId).emit('answer', data);
 		})
 
-		socket.on('end-live-session', async ({ sessionId, userId }) => {
+		socket.on('end-live-session', async ({ sessionId, userId, role }) => {
 			socket.leave(sessionId);
-			await liveSessionController.leaveLiveSession(sessionId, userId, socket);
-			// front should listen to [one-leaved-session] to get updated attendance 
+			await liveSessionController.leaveLiveSession(sessionId, userId, socket, 'leave', role, io);
 		})
 
+		// [for instructor] end session and convert it to the summary button 
+		socket.on('instructor-end-liveSession', async ({ sessionId, userId }) => {
+			socket.leave(sessionId);
+			await liveSessionController.leaveLiveSession(sessionId, userId, socket, 'instructor-end-liveSession', '', io);
+		})
 		///////////////////////
+
+
 		socket.on('disconnect', () => {
 			socket.rooms.forEach(room => {
 				socket.leave(room);
