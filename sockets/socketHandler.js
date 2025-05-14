@@ -9,6 +9,9 @@ module.exports = (io) => {
         // join chat groups room take array of groups IDs
         socket.on("joinGroupsRooms", (data) => {
             socket.join(data.groupsId);
+            io.to(data.groupsId).emit("user-joined-group-chat", {
+                message: "user joined the group chat",
+            });
             console.log(data.groupsId);
         });
         // general room joining.
