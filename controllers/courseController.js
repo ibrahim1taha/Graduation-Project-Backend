@@ -135,7 +135,7 @@ const courseController = {
 
 				const course = await courseModel.findByIdAndDelete({ _id: id }, { session: session });
 				const theGroupOfThisCourse = await groupsModel.findOne({ course: id });
-				console.log(theGroupOfThisCourse)
+				
 				if (!course) customErr(404, 'Course not found!');
 
 				isAuth.isHaveAccess(course.instructor, req.userId);

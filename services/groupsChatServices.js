@@ -92,8 +92,8 @@ class groupsChatServices {
 		}, []);
 
 		await messageModel.deleteMany({ groupId: groupId }, { session: transactionsSession });
-		console.log(imgsUrlArr)
-		await awsFileHandler.deleteImagesFromS3(imgsUrlArr)
+		if(imgsUrlArr.length > 0)
+			await awsFileHandler.deleteImagesFromS3(imgsUrlArr)
 	}
 
 	static async getUsersDeviceToken(groupId, userId) {
@@ -102,6 +102,11 @@ class groupsChatServices {
 		);
 		const tokensArr = tokens.map(user => user.tokenFromAndroid);
 		return tokensArr;
+	}
+
+	static async onlineUsersCount(room){
+		const onlineUserCount = await io.in(room).fetchSockets(); 
+		return onlineUserCount.length;
 	}
 
 

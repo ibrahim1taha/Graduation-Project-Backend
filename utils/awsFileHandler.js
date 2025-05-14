@@ -48,17 +48,16 @@ const deleteImageFromS3 = async (key) => {
 
 	const url = new URL(key);
 	const Key = url.pathname.substring(1);
-
-
+	console.log(Key); 
 	const params = {
 		Bucket: S3_BUCKET_NAME,
 		Key: Key
 	}
-
+	
 	const command = new DeleteObjectCommand(params);
-
+	
 	await s3.send(command);
-}
+}	
 
 const deleteImagesFromS3 = async (keysArr) => {
 
@@ -75,7 +74,6 @@ const deleteImagesFromS3 = async (keysArr) => {
 	}
 
 	const command = new DeleteObjectsCommand(params);
-
 	await s3.send(command);
 }
 

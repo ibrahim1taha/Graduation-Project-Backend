@@ -19,7 +19,8 @@ module.exports = (io) => {
 
 		socket.on('leaveRoom', (groupId) => {
 			socket.leave(groupId);
-			console.log(`${socket.id} leaved room: ${groupId} -- rooms size = ${socket.rooms.size}`);
+			io.to(groupId).emit('user-leaved-group-chat' , {})
+			console.log(`${socket.id} leaved room: ${groupId}`);
 		})
 
 		/////////////////////////live session///////////////////////

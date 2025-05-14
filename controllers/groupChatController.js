@@ -30,24 +30,30 @@ class chatGroupsController {
 	static async getGroupChat(req, res, next) {
 		const groupId = req.params.groupId;
 		let idx = req.query.index || 0;
-		try {
+		try {			
 			const isInGroup = await userModel.findOne({
 				$and: [{ _id: req.userId }, { 'myLearningIds.courseChatGroupId': groupId }]
 			}, { _id: 1 });
+			
 			const group = await groupsModel.findById(groupId);
 			if (!group) customErr(404, 'Group not found!')
+			
 			if (!isInGroup && req.userId.toString() != group.instructor.toString())
 				customErr(422, 'Not authorized to access this chat!');
 
 			const groupChat = await messageModel.find({ groupId: groupId }).sort({ createdAt: -1 }).populate('sender', '_id userPhoto userName');
 
 			const paginatedChat = groupChat.slice(idx, idx + 21);
-			console.log(paginatedChat[0]);
+			// console.log(paginatedChat[0]);
 			if (!groupChat) {
 				customErr(404, 'No messages found in this group chat.');
 			}
+			const onlineUsersCount = await groupsChatServices.onlineUsersCount(groupId.toString()) ;
 
-			res.status(200).json(paginatedChat);
+			res.status(200).json({
+				onlineUsersCount,
+				paginatedChat
+			});
 		} catch (err) {
 			console.log(err);
 			next(err);
