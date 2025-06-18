@@ -18,7 +18,7 @@ class liveSessionController {
 			// socket here to change btn status in real time .
 			if (course.instructor == userId && session.status !== 'ended-summary') {
 				session.status = 'running';
-				io.to(course._id.toString()).emit('update-session-status', { sessionId, status: 'running' });
+				io.to(course._id.toString()).emit('update-session-status', { sessionId, status: 'running' }); ///////////
 			}
 
 			if (!session.attendance.some(obj => obj.userId == userId))
@@ -26,8 +26,8 @@ class liveSessionController {
 
 			await session.save();
 
-			socket.broadcast.to(sessionId).emit('user-connected', user);
-			socket.emit('existing-users', session.attendance);
+			socket.broadcast.to(sessionId).emit('user-connected', user); ///////////
+			socket.emit('existing-users', session.attendance);////////////
 
 		} catch (err) {
 			socket.emit('error', 'Can not join the session!');

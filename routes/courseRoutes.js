@@ -21,16 +21,14 @@ router.put('/update/:id', isAuth.authorized, isAuth.isInstructor
 	, courseValidators.courseValidations
 	, courseController.updateCourse);
 
-// many get for HOME API (not in use)
-// router.get('/popular', courseController.getPopularCourses);
-// router.get('/new', courseController.getNewCourses);
-// router.get('/topics', courseController.getCoursesWithTopics);
-
 // single api for Home page 
 router.get('/homeDate', courseController.getHomeData);
 
 // course details -> courses/getCourseDetails
 router.get('/courseDetails/:courseId', isAuth.authorizedOrNot, courseController.getCourseDetails);
+
+// get joined users
+router.get('/trainees/:courseId' , isAuth.authorized , courseController.getCourseTrainees)
 
 //get topic after click see all from home page , 
 router.get('/topic/:topic', courseController.getTopicCourses);
@@ -51,9 +49,6 @@ router.get('/search', courseController.searchCourses)
 
 // join course 
 router.post('/join/:courseId', isAuth.authorized, courseController.joinCourse);
-
-
-
 
 
 

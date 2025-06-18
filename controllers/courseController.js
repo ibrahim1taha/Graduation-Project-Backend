@@ -257,6 +257,26 @@ const courseController = {
         }
     },
 
+
+	getCourseTrainees : async (req , res , next )=> {
+		const { courseId } = req.params ; 
+		try {
+			const course = await courseModel.findById(courseId);
+			if (!course) customErr(404, "Course not found!");
+			// check if he is the instructor .
+			isAuth.isHaveAccess(course.instructor, req.userId);
+			
+			const users = await CourseServices.getCourseTrainees(courseId); 
+
+
+			res.status(200).json(users); 
+
+		} catch (err) {
+			console.log(err); 
+			next(err) ; 
+		}
+	}, 
+
     getTopicCourses: async (req, res, next) => {
         try {
             const topic = req.params.topic;
