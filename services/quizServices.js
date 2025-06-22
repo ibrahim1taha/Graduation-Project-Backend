@@ -4,8 +4,9 @@ const quizModel = require("../models/quiz");
 const submissionsModel = require("../models/submissions");
 const sessionsModel = require("../models/sessions");
 const coursesModel = require("../models/courses");
+const articlesModel = require('../models/articles'); 
 const customErr = require("../utils/customErr");
-
+const awsFileHandler = require('../utils/awsFileHandler'); 
 class QuizServices {
     static generatePrompt(summaryText) {
         return `Based on the input text, generate between 4 and 10 multiple-choice questions depending on the content depth. Return them as a JSON array in this format:
@@ -46,11 +47,20 @@ Text:
 
     static async validateSession(sessionId) {
         const session = await sessionsModel.findById(sessionId);
-        if (!session || session.status !== "ended-summary" || session.isQuiz !== false) {
+        if (!session || session.status !== "ended-summary" || session.isQuiz !== false || session.isArticle === false) {
             customErr(400, "Can not generate quiz for this session!");
         }
         return session;
     }
+
+	static async handleArticleContent(sessionId){
+		const article = await articlesModel.findOne({sessionId : sessionId}); 
+		if(!article) customErr(404 , 'Article not found!'); 
+
+		const data = await awsFileHandler.getObjectFromS3(article.contentUrl); 
+
+		return data; 
+	}
 
     static async callAIService(summaryText, URL) {
         const result = await axios.post(URL, {
@@ -94,7 +104,7 @@ Text:
         });
     }
 
-    static async updateSessionQuizStatus(session) {
+    static async updateSessionStatus(session) {
         session.isQuiz = true;
         await session.save();
     }
@@ -145,10 +155,12 @@ Text:
         return { score, formattedAnswers };
     }
 
-    static async createSubmission(userId, quizId, quiz, formattedAnswers, score) {
+    static async createSubmission(userId,userName , userPhoto , quizId, quiz, formattedAnswers, score) {
         return await submissionsModel.create({
             userId,
             quizId,
+			userName ,
+			userPhoto ,
             sessionId: quiz.sessionId,
             courseId: quiz.courseId,
             answers: formattedAnswers,

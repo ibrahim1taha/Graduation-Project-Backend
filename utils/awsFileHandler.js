@@ -1,6 +1,5 @@
 const s3 = require('../config/s3Configuration');
-const { PutObjectCommand } = require('@aws-sdk/client-s3');
-const { DeleteObjectCommand, DeleteObjectsCommand } = require('@aws-sdk/client-s3');
+const { DeleteObjectCommand, DeleteObjectsCommand , GetObjectCommand  } = require('@aws-sdk/client-s3');
 const { Upload } = require('@aws-sdk/lib-storage');
 const customErr = require('../utils/customErr')
 const sharpImage = require('../utils/sharpImage');
@@ -8,20 +7,29 @@ const sharpImage = require('../utils/sharpImage');
 const S3_BUCKET_NAME = 'grad-proj-images'
 const AWS_REGION = 'eu-north-1';
 
-const handleFileUploaded = async (file, folderName, width, height) => {
+const handleFileUploaded = async (type = 'image' , file, folderName, width, height) => {
 
 	try {
-		if (file.size > (1024 * 1024)) customErr(422, 'Maximum image size is 1MB', 'image');
-		// share image to 800 * 450 px 
-		const fileBuffer = await sharpImage(file.buffer, width, height);
-
-		const format = file.mimetype.split('/')[1];
+		let bodyContent ; 
+		let contentType  ; 
+		let format ; 
+		if(type === 'image'){
+			if (file.size > (1024 * 1024)) customErr(422, 'Maximum image size is 1MB', 'image');
+			// share image to 800 * 450 px 
+			bodyContent = await sharpImage(file.buffer, width, height);
+			contentType  = file.mimetype ; 
+			format = file.mimetype.split('/')[1];
+		}else{
+			bodyContent = file ; 
+			contentType  = 'text/plain', 
+			format = 'txt'
+		}
 
 		const params = {
 			Bucket: S3_BUCKET_NAME,
 			Key: `${folderName}/${Date.now()}.${format}`,
-			Body: fileBuffer,
-			ContentType: file.mimetype,
+			Body: bodyContent,
+			ContentType: contentType ,
 			ACL: "public-read",
 		}
 
@@ -78,4 +86,27 @@ const deleteImagesFromS3 = async (keysArr) => {
 }
 
 
-module.exports = { handleFileUploaded, deleteImageFromS3, deleteImagesFromS3 }
+const getObjectFromS3 = async (contentUrl) => {
+
+	if(!contentUrl)
+		throw new Error('Invalid or missing S3 object key');
+
+	const url = new URL(contentUrl);
+	const key = url.pathname.substring(1);
+
+	const params = {
+		Bucket: S3_BUCKET_NAME,
+		Key : key ,
+	}
+
+	const command = new GetObjectCommand(params); 
+
+	const data = await s3.send(command); 
+
+	const content = await data.Body.transformToString('utf-8') ;
+	
+	return content ; 
+
+}
+
+module.exports = { handleFileUploaded, deleteImageFromS3, deleteImagesFromS3 , getObjectFromS3 }

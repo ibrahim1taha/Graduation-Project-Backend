@@ -14,7 +14,7 @@ module.exports = (io) => {
             });
             console.log(data.groupsId);
         });
-        // general room joining.
+        // general room joining. // used in join course details 
         socket.on("joinRoom", (key) => {
             socket.join(key);
             console.log(key + " joined room");
@@ -62,27 +62,26 @@ module.exports = (io) => {
                 sessionId,
                 userId,
                 socket,
-                "leave",
                 role,
-                io
             );
         });
 
         // [for instructor] end session and convert it to the summary button
-        socket.on(
-            "instructor-end-liveSession",
-            async ({ sessionId, userId }) => {
-                socket.leave(sessionId);
-                await liveSessionController.leaveLiveSession(
-                    sessionId,
-                    userId,
-                    socket,
-                    "instructor-end-liveSession",
-                    "",
-                    io
-                );
-            }
-        );
+		// this socket will replaced with endAndSummarize end point.
+        // socket.on(
+        //     "instructor-end-liveSession",
+        //     async ({ sessionId, userId }) => {
+        //         socket.leave(sessionId);
+        //         await liveSessionController.leaveLiveSession(
+        //             sessionId,
+        //             userId,
+        //             socket,
+        //             "instructor-end-liveSession",
+        //             "",
+        //             io
+        //         );
+        //     }
+        // );
         ///////////////////////
 
         socket.on("disconnect", () => {

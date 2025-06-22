@@ -28,6 +28,10 @@ const sessionsSchema = mongoose.Schema(
             type: Boolean,
             default: false,
         },
+        isArticle: {
+            type: Boolean,
+            default: false,
+        },
         // attendance: [{ type: mongoose.Types.ObjectId, ref: 'Users' }],
         attendance: [
             {

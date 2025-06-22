@@ -7,6 +7,14 @@ const submissionSchema = mongoose.Schema({
 		ref : 'Users', 
 
 	}, 
+	userName : {
+		type : String , 
+		required : true 
+	},
+	userPhoto : {
+		type : String , 
+		required : true 
+	},
 	quizId: {
 		type: ObjectId,
 		ref: "quiz",

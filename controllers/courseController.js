@@ -41,6 +41,7 @@ const courseController = {
 
                 if (req.file)
                     imageURl = await awsFileHandler.handleFileUploaded(
+						'image', 
                         req.file,
                         "uploads",
                         800,
@@ -134,6 +135,7 @@ const courseController = {
                         await awsFileHandler.deleteImageFromS3(course.image);
 
                     const updatedImg = await awsFileHandler.handleFileUploaded(
+						'image',
                         req.file,
                         "uploads",
                         800,

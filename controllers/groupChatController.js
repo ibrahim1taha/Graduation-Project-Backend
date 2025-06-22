@@ -89,7 +89,7 @@ class chatGroupsController {
 				}
 
 				let msgImageUrl;
-				if (req.file) msgImageUrl = await awsFileHandler.handleFileUploaded(req.file, 'chatImages', 400, null);
+				if (req.file) msgImageUrl = await awsFileHandler.handleFileUploaded('image',req.file, 'chatImages', 400, null);
 				const message = new messageModel({
 					text: text,
 					groupId: groupId,

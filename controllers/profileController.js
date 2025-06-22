@@ -79,7 +79,7 @@ class ProfileController {
 				if (!req.userId) customErr(404, 'Can not update profile photo , User not found!');
 				if (!req.file) customErr(500, 'file missed');
 
-				const userPhoto = await awsFileHandler.handleFileUploaded(req.file, 'profile', 300, 300);
+				const userPhoto = await awsFileHandler.handleFileUploaded('image',req.file, 'profile', 300, 300);
 				if (!userPhoto) customErr(500, 'file missed');
 
 				const user = await userModel.findById(req.userId, { myLearningIds: 0, password: 0 })
