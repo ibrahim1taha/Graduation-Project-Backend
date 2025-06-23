@@ -47,14 +47,20 @@ Text:
 
     static async validateSession(sessionId) {
         const session = await sessionsModel.findById(sessionId);
-        if (!session || session.status !== "ended-summary" || session.isQuiz !== false || session.isArticle === false) {
-            customErr(400, "Can not generate quiz for this session!");
-        }
+        if (!session) 
+            customErr(404, "Session not found!");
+
+        if (session.quizId)
+            customErr(400, "The session already has a quiz!");
+		
+        if (!session.articleId) 
+            customErr(400, "The session must have article to generate quiz!");
+
         return session;
     }
 
-	static async handleArticleContent(sessionId){
-		const article = await articlesModel.findOne({sessionId : sessionId}); 
+	static async handleArticleContent(articleId){
+		const article = await articlesModel.findById(articleId); 
 		if(!article) customErr(404 , 'Article not found!'); 
 
 		const data = await awsFileHandler.getObjectFromS3(article.contentUrl); 
@@ -104,8 +110,8 @@ Text:
         });
     }
 
-    static async updateSessionStatus(session) {
-        session.isQuiz = true;
+    static async updateSession(session , quizId) {
+        session.quizId = quizId ;
         await session.save();
     }
 
@@ -183,7 +189,7 @@ Text:
                 .find({
                     courseId,
                     status: "ended-summary",
-                    isQuiz: { $in: [false, undefined] },
+                    quizId: { $eq: null },
                 })
                 .select(" -attendance  ");
         }

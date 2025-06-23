@@ -24,14 +24,14 @@ const sessionsSchema = mongoose.Schema(
             },
             default: "scheduled",
         },
-        isQuiz: {
-            type: Boolean,
-            default: false,
-        },
-        isArticle: {
-            type: Boolean,
-            default: false,
-        },
+		articleId : {
+			type : mongoose.Types.ObjectId , 
+			ref : 'articles'
+		}, 
+		quizId : {
+			type : mongoose.Types.ObjectId , 
+			ref : 'quiz'
+		}, 
         // attendance: [{ type: mongoose.Types.ObjectId, ref: 'Users' }],
         attendance: [
             {

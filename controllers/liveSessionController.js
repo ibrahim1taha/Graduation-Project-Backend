@@ -8,6 +8,8 @@ const audioToTxt = require('../utils/audioToTxt');
 const awsFileHandler = require("../utils/awsFileHandler");
 const articlesModel = require('../models/articles'); 
 
+const SessionsServices =require('../services/liveSessionServices'); 
+const QuizServices = require("../services/quizServices");
 
 const socket = require('../sockets/socket'); 
 class liveSessionController {
@@ -78,30 +80,17 @@ class liveSessionController {
 		try {
 			if(!audioFile) customErr(404, 'The audio file missed!') ; 
 
-			const session = await sessionsModel.findById(sessionId);
-			if(!session) customErr(404 , 'Session not found!') ; 
-			if(session.isArticle) customErr(422 , 'The session already has an article!')
+			const session = await SessionsServices.validateSessionToSummarize(sessionId); 
 			// audio to -> transcript to -> article
 			const parsedArticle = await audioToTxt(audioFile); 
 			
-			const contentURL = await awsFileHandler.handleFileUploaded(
-				'audio' , 
-				parsedArticle.content ,
-				'articles',
-			)
+			const contentURL = await awsFileHandler.handleFileUploaded('audio' , parsedArticle.content ,'articles' )
 
-			const article = await articlesModel.create({
-				courseId : session.courseId , 
-				sessionId : session._id, 
-				title : parsedArticle.title ,
-				contentUrl : contentURL , 
-				readingTime : parsedArticle.readingTime
-			})
+			const article = await SessionsServices.createArticle(session.courseId ,
+				session._id , parsedArticle.title , contentURL , parsedArticle.readingTime);
 			
-			session.status = 'ended-summary' ;
-			session.isArticle = true ; 
-			session.attendance = [] ; 
-			await session.save();
+			await SessionsServices.updateSummarizedSession(session , 'ended-summary' , article._id); 
+
 			// notify that article is now available 
 			socket.emitToRoom(session.courseId.toString() , 'update-session-status' , { 
 				sessionId, 
@@ -122,6 +111,23 @@ class liveSessionController {
 		}
 	}
 
+	static async getArticle (req ,res ,next) {
+		const {articleId} = req.params ; 
+		try {
+			const article = await articlesModel.findById(articleId);
+			if(!article) customErr(404 , 'Article not found!'); 
+
+			const content = await QuizServices.handleArticleContent(article._id); 
+
+			res.status(200).json({
+				article, 
+				content
+			})
+		} catch (err) {
+			console.log(err); 
+			next(err); 
+		}
+	}
 }
 
 module.exports = liveSessionController; 

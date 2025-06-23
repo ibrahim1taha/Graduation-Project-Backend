@@ -13,6 +13,7 @@ router.post('/endAndSummarize/:sessionId' ,
 
 
 // get session article 
+router.get('/article/:articleId' , isAuth.authorized , liveSessionController.getArticle)
 
 
 module.exports = router; 

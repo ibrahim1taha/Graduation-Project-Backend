@@ -17,14 +17,14 @@ class QuizController {
             await CourseServices.isJoinedCourse(courseId, req.userId);
 
             const session = await QuizServices.validateSession(sessionId);
-			const content = await QuizServices.handleArticleContent(sessionId);
+			const content = await QuizServices.handleArticleContent(session.articleId);
 			
             const output = await QuizServices.callAIService(content, URL);
             const questionsFormatted = QuizServices.parseAndFormatQuestions(output);
 
             const quiz = await QuizServices.createQuiz(title, courseId, sessionId, questionsFormatted);
 		
-            await QuizServices.updateSessionStatus(session);
+            await QuizServices.updateSession(session , quiz._id);
 
             res.status(201).json({
                 success: true,
