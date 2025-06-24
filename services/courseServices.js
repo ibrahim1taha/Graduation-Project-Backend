@@ -203,8 +203,10 @@ class CourseServices {
                             title: 1,
                             status: 1,
                             startDate: 1,
+
 							articleId : 1, 
 							quizId : 1 
+
                         },
                     },
                 },
