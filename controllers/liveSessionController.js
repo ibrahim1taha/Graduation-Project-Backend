@@ -57,15 +57,7 @@ class liveSessionController {
 			if ( role === 'instructor' ) {
 				session.status = 'ended-reopen';
 			}
-			
-			// socket here to change btn status in real time
-			// this should replaced with endAndSummarize end point
-			// if (action === 'instructor-end-liveSession') {
-				// 	// session.attendance = [];
-				// 	session.status = 'ended-summary';
-				// 	// io.to(session.courseId.toString()).emit('update-session-status', { sessionId, status: 'ended-summary' });
-				// }
-				
+
 			await session.save();
 			socket.to(sessionId).emit('one-leaved-session', userId);
 		} catch (err) {
@@ -77,32 +69,32 @@ class liveSessionController {
 	static async generateSessionSummary(req , res , next){
 		const {sessionId} = req.params ;
 		const audioFile = req.file ; 
+		let sessionStatus ; 
 		try {
-			if(!audioFile) customErr(404, 'The audio file missed!') ; 
-
-			const session = await SessionsServices.validateSessionToSummarize(sessionId); 
-			// audio to -> transcript to -> article
-			const parsedArticle = await audioToTxt(audioFile); 
+			const session = await SessionsServices.validateSessionToSummarize(sessionId);
 			
-			const contentURL = await awsFileHandler.handleFileUploaded('audio' , parsedArticle.content ,'articles' )
+			let article ;
 
-			const article = await SessionsServices.createArticle(session.courseId ,
-				session._id , parsedArticle.title , contentURL , parsedArticle.readingTime);
-			
-			await SessionsServices.updateSummarizedSession(session , 'ended-summary' , article._id); 
+			audioFile ? 
+			[ article , sessionStatus ] = await SessionsServices.generateArticle(session , audioFile) 
+			:
+			sessionStatus = 'ended-noSummary'
+
+			const articleId = article ? article._id : null
+			await SessionsServices.updateSummarizedSession(session , sessionStatus ,articleId ); 
 
 			// notify that article is now available
-			socket.emitToRoom(session.courseId.toString() , 'update-session-status' , { 
+			socket.emitToRoom(session.courseId.toString() , 'update-session-status' , {
 				sessionId, 
-				articleId : article._id ,
-				status: 'ended-summary' 
-			}) ; 
+				articleId : articleId ,
+				status: sessionStatus
+			});
 
 			res.status(201).json({
 				success : true ,
 				sessionId , 
-				articleId : article._id ,
-				message : 'Article summary created successfully!'
+				articleId : articleId ,
+				message : 'Session ended successfully!'
 			});
 			// generate article 
 		} catch (err) {

@@ -20,6 +20,8 @@ const sessionsSchema = mongoose.Schema(
                     "running",
                     "ended-reopen",
                     "ended-summary",
+					"pending",
+					"ended-noSummary" ,
                 ],
             },
             default: "scheduled",

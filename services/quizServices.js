@@ -218,7 +218,9 @@ Text:
     }
 
     static async getUsersSubmissions(quizId) {
-        const submissions = await submissionsModel.find({ quizId }).select(' -answers ');
+        const submissions = await submissionsModel.find({ quizId })
+			.populate('userId' , 'userName userPhoto')
+			.select(' -answers ');
 		if(!submissions || submissions.length == 0) customErr(404, 'No submissions yet!') ; 
 		return submissions; 
     }
