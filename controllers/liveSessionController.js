@@ -91,7 +91,7 @@ class liveSessionController {
 			
 			await SessionsServices.updateSummarizedSession(session , 'ended-summary' , article._id); 
 
-			// notify that article is now available 
+			// notify that article is now available
 			socket.emitToRoom(session.courseId.toString() , 'update-session-status' , { 
 				sessionId, 
 				articleId : article._id ,

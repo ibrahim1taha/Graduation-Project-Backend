@@ -114,7 +114,8 @@ class chatGroupsController {
 				// get tokens array for group users except sender token to send notification 
 				// const tokens = await groupsChatServices.getUsersDeviceToken(groupId, req.userId);
 				// console.log('tokens : ', tokens);
-
+				
+				// send notification using firebase ;  
 				sendNotification(groupId, user.userName, group.groupName, text, {
 					groupId: groupId.toString(),
 					groupName: group.groupName,

@@ -112,7 +112,7 @@ class QuizController {
 		const {quizId} = req.params ; 
 		try {
 			const submissions = await QuizServices.getUsersSubmissions(quizId);
-			res.status(200).json(submissions); 
+			res.status(200).json(submissions);
 		} catch (err) {
 			console.log(err); 
 			next(err) ; 
