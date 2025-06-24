@@ -4,8 +4,9 @@ const quizModel = require("../models/quiz");
 const submissionsModel = require("../models/submissions");
 const sessionsModel = require("../models/sessions");
 const coursesModel = require("../models/courses");
+const articlesModel = require('../models/articles'); 
 const customErr = require("../utils/customErr");
-
+const awsFileHandler = require('../utils/awsFileHandler'); 
 class QuizServices {
     static generatePrompt(summaryText) {
         return `Based on the input text, generate between 4 and 10 multiple-choice questions depending on the content depth. Return them as a JSON array in this format:
@@ -46,11 +47,26 @@ Text:
 
     static async validateSession(sessionId) {
         const session = await sessionsModel.findById(sessionId);
-        if (!session || session.status !== "ended-summary" || session.isQuiz !== false) {
-            customErr(400, "Can not generate quiz for this session!");
-        }
+        if (!session) 
+            customErr(404, "Session not found!");
+
+        if (session.quizId)
+            customErr(400, "The session already has a quiz!");
+		
+        if (!session.articleId) 
+            customErr(400, "The session must have article to generate quiz!");
+
         return session;
     }
+
+	static async handleArticleContent(articleId){
+		const article = await articlesModel.findById(articleId); 
+		if(!article) customErr(404 , 'Article not found!'); 
+
+		const data = await awsFileHandler.getObjectFromS3(article.contentUrl); 
+
+		return data; 
+	}
 
     static async callAIService(summaryText, URL) {
         const result = await axios.post(URL, {
@@ -94,8 +110,8 @@ Text:
         });
     }
 
-    static async updateSessionQuizStatus(session) {
-        session.isQuiz = true;
+    static async updateSession(session , quizId) {
+        session.quizId = quizId ;
         await session.save();
     }
 
@@ -145,10 +161,12 @@ Text:
         return { score, formattedAnswers };
     }
 
-    static async createSubmission(userId, quizId, quiz, formattedAnswers, score) {
+    static async createSubmission(userId,userName , userPhoto , quizId, quiz, formattedAnswers, score) {
         return await submissionsModel.create({
             userId,
             quizId,
+			userName ,
+			userPhoto ,
             sessionId: quiz.sessionId,
             courseId: quiz.courseId,
             answers: formattedAnswers,
@@ -171,7 +189,7 @@ Text:
                 .find({
                     courseId,
                     status: "ended-summary",
-                    isQuiz: { $in: [false, undefined] },
+                    quizId: { $eq: null },
                 })
                 .select(" -attendance  ");
         }

@@ -89,7 +89,7 @@ class chatGroupsController {
 				}
 
 				let msgImageUrl;
-				if (req.file) msgImageUrl = await awsFileHandler.handleFileUploaded(req.file, 'chatImages', 400, null);
+				if (req.file) msgImageUrl = await awsFileHandler.handleFileUploaded('image',req.file, 'chatImages', 400, null);
 				const message = new messageModel({
 					text: text,
 					groupId: groupId,
@@ -114,7 +114,8 @@ class chatGroupsController {
 				// get tokens array for group users except sender token to send notification 
 				// const tokens = await groupsChatServices.getUsersDeviceToken(groupId, req.userId);
 				// console.log('tokens : ', tokens);
-
+				
+				// send notification using firebase ;  
 				sendNotification(groupId, user.userName, group.groupName, text, {
 					groupId: groupId.toString(),
 					groupName: group.groupName,

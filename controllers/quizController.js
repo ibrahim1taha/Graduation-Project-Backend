@@ -4,7 +4,8 @@ const URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-
 
 const QuizServices = require("../services/quizServices");
 const CourseServices = require("../services/courseServices");
-
+const userModel = require('../models/users'); 
+const customErr = require("../utils/customErr");
 class QuizController {
     static async generateQuiz(req, res, next) {
         const { title, courseId } = req.body;
@@ -16,15 +17,18 @@ class QuizController {
             await CourseServices.isJoinedCourse(courseId, req.userId);
 
             const session = await QuizServices.validateSession(sessionId);
-            
-            const output = await QuizServices.callAIService(tstText, URL);
+			const content = await QuizServices.handleArticleContent(session.articleId);
+			
+            const output = await QuizServices.callAIService(content, URL);
             const questionsFormatted = QuizServices.parseAndFormatQuestions(output);
 
-            await QuizServices.createQuiz(title, courseId, sessionId, questionsFormatted);
-            await QuizServices.updateSessionQuizStatus(session);
+            const quiz = await QuizServices.createQuiz(title, courseId, sessionId, questionsFormatted);
+		
+            await QuizServices.updateSession(session , quiz._id);
 
             res.status(201).json({
                 success: true,
+				quizId : quiz._id, 
                 message: "Quiz generated successfully!",
             });
         } catch (err) {
@@ -36,16 +40,18 @@ class QuizController {
     static async submitQuiz(req, res, next) {
         const { answers } = req.body;
         const { quizId } = req.params;
+		const userId = req.userId;
         
         try {
-            const userId = req.userId;
-            
+            const user = await userModel.findById(userId); 
+			if(!user) customErr(404, 'User not found!'); 
+
             const quiz = await QuizServices.validateSubmission(quizId, answers, userId);
             await CourseServices.isJoinedCourse(quiz.courseId, userId);
 
             const { score, formattedAnswers } = QuizServices.processAndScoreAnswers(answers, quiz);
             
-            await QuizServices.createSubmission(userId, quizId, quiz, formattedAnswers, score);
+            await QuizServices.createSubmission(userId, user.userName, user.userPhoto , quizId, quiz, formattedAnswers, score);
 
             res.status(201).json({
                 success: true,
@@ -106,7 +112,7 @@ class QuizController {
 		const {quizId} = req.params ; 
 		try {
 			const submissions = await QuizServices.getUsersSubmissions(quizId);
-			res.status(200).json(submissions); 
+			res.status(200).json(submissions);
 		} catch (err) {
 			console.log(err); 
 			next(err) ; 

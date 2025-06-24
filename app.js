@@ -14,8 +14,10 @@ connectDB();
 
 const httpServer = createServer(app);
 socket.init(httpServer);
+
 const io = socket.getIo();
 socketHandler(io);
+
 const authRouter = require("./routes/authRoutes");
 const coursesRouter = require("./routes/courseRoutes");
 const liveSessionRouter = require("./routes/liveSessionRoutes");
