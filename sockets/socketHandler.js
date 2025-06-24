@@ -66,23 +66,6 @@ module.exports = (io) => {
             );
         });
 
-        // [for instructor] end session and convert it to the summary button
-		// this socket will replaced with endAndSummarize end point.
-        // socket.on(
-        //     "instructor-end-liveSession",
-        //     async ({ sessionId, userId }) => {
-        //         socket.leave(sessionId);
-        //         await liveSessionController.leaveLiveSession(
-        //             sessionId,
-        //             userId,
-        //             socket,
-        //             "instructor-end-liveSession",
-        //             "",
-        //             io
-        //         );
-        //     }
-        // );
-        ///////////////////////
 
         socket.on("disconnect", () => {
             socket.rooms.forEach((room) => {
