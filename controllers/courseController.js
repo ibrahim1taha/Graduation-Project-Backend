@@ -374,7 +374,7 @@ const courseController = {
     },
 
     searchCourses: async (req, res, next) => {
-        let { search } = req.body;
+        const {search} = req.query;
         const socketId = req.headers["socket-id"];
         try {
             const [users, courses] = await Promise.all([
