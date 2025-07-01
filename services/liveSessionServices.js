@@ -54,12 +54,15 @@ class SessionsServices {
 
 		const parsedArticle = await audioToTxt(audioFile); 
 		
+		if(!parsedArticle || parsedArticle === null)
+			return [null , 'ended-noSummary'] 
+
 		const contentURL = await awsFileHandler.handleFileUploaded('audio' , parsedArticle.content ,'articles' )
-	
+		
 		const article = await SessionsServices.saveArticle(session.courseId ,
 			session._id , parsedArticle.title , contentURL , parsedArticle.readingTime);
 
-		return [article , 'ended-summary']  ;
+		return [article , 'ended-summary'] ;
 	}
 }
 

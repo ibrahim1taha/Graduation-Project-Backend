@@ -35,7 +35,6 @@ class CallAiServices {
 - Include ALL essential knowledge but in a more concise format
 - Add markdown links to relevant educational resources for the most crucial topics: [Important Concept Name](actual-url-to-quality-educational-content)
 - Target readable length (instructor should recognize their core message without excessive detail)
-
 **OUTPUT FORMAT (JSON):**
 {
   "title": "Descriptive title based on lecture topic",

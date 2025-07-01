@@ -1,13 +1,8 @@
 const sessionsModel = require('../models/sessions');
 const customErr = require('../utils/customErr');
-
 const coursesModel = require('../models/courses');
 const usersModel = require('../models/users');
-
-const audioToTxt = require('../utils/audioToTxt');  
-const awsFileHandler = require("../utils/awsFileHandler");
 const articlesModel = require('../models/articles'); 
-
 const SessionsServices =require('../services/liveSessionServices'); 
 const QuizServices = require("../services/quizServices");
 
@@ -96,7 +91,6 @@ class liveSessionController {
 				articleId : articleId ,
 				message : 'Session ended successfully!'
 			});
-			// generate article 
 		} catch (err) {
 			console.log(err); 
 			next(err); 

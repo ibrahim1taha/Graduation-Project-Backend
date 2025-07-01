@@ -11,15 +11,20 @@ const client = new AssemblyAI({
 });
 
 const generateArticle = async (audioFile) => {
+	console.log(audioFile); 
 	const params = {
 		audio: audioFile.buffer,
 		speech_model: "universal",
+		// language_code: "ar", 
 	};
 
 	const transcript = await client.transcripts.transcribe(params);
+	
+	if(!transcript.text || transcript.text.length < 200) 
+		return null ; 
 
 	const article = await CallAiServices.callGeminiApi(transcript.text , URL) ;
-	
+
 	const cleanedJson = article
 	.replace(/^```json\n/, "")
 	.replace(/```$/, "")
