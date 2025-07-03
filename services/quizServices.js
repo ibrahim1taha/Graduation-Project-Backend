@@ -7,6 +7,7 @@ const coursesModel = require("../models/courses");
 const articlesModel = require('../models/articles'); 
 const customErr = require("../utils/customErr");
 const awsFileHandler = require('../utils/awsFileHandler'); 
+const quiz = require("../models/quiz");
 class QuizServices {
     static generatePrompt(summaryText) {
         return `Based on the input text, generate between 4 and 10 multiple-choice questions depending on the content depth. Return them as a JSON array in this format:
@@ -218,10 +219,16 @@ Text:
     }
 
     static async getUsersSubmissions(quizId) {
+		const quiz = await quizModel.findById(quizId); 
+		if(!quiz)customErr(404 , 'Quiz not found!'); 
+		const course = await coursesModel.findById(quiz.courseId) ; 
+		if(!course)customErr(404 , 'course not found!'); 
         const submissions = await submissionsModel.find({ quizId })
 			.populate('userId' , 'userName userPhoto')
+			.populate('courseId' , 'title -_id')
 			.select(' -answers ');
 		if(!submissions || submissions.length == 0) customErr(404, 'No submissions yet!') ; 
+		// const result = {...submissions , courseTitle : course.title}
 		return submissions; 
     }
 
