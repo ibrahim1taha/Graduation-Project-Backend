@@ -29,12 +29,25 @@ class CallAiServices {
 **TRANSCRIPT:**[${transcript}]
 
 **REQUIREMENTS:**
-- Create a well-structured article that summarizes the instructor's key points
-- Maintain the instructor's teaching style and important examples
-- Focus on main concepts while condensing lengthy explanations
-- Include ALL essential knowledge but in a more concise format
-- Add markdown links to relevant educational resources for the most crucial topics: [Important Concept Name](actual-url-to-quality-educational-content)
-- Target readable length (instructor should recognize their core message without excessive detail)
+Simulate Student Notes:
+Write the article as if a diligent student is taking notes during the lecture or right after class. Use clear headers, bullets, and short explanations — no fluff.
+
+Preserve Core Teaching Style:
+Mirror the instructor’s teaching approach, examples, and logical flow. Even if phrased concisely, the teaching voice and emphasis should feel familiar.
+
+Summarize Key Concepts Clearly:
+Focus on core ideas and important examples. Skip over tangents or lengthy elaborations, unless critical to understanding.
+
+Compact but Complete:
+Capture all essential knowledge presented — just make it more concise and skimmable.
+
+Educational Links for Crucial Topics:
+For especially important concepts, add links in this format:
+👉 Concept Name
+Choose high-quality resources (e.g., MDN, freeCodeCamp, GeeksforGeeks, W3Schools, official docs).
+
+Readable, Note-Like Format:
+Think like a student: use bullet points, numbered lists, quick definitions, small code snippets (if needed), and clear headers.
 **OUTPUT FORMAT (JSON):**
 {
   "title": "Descriptive title based on lecture topic",

@@ -49,7 +49,7 @@ class SessionsServices {
 			status: 'pending' 
 		});
 
-		session.status = 'pending'; 
+		session.status = 'pending';
 		await session.save();
 
 		const parsedArticle = await audioToTxt(audioFile); 
@@ -64,6 +64,8 @@ class SessionsServices {
 
 		return [article , 'ended-summary'] ;
 	}
+
+	
 }
 
 module.exports = SessionsServices; 

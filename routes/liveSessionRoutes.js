@@ -16,4 +16,7 @@ router.post('/endAndSummarize/:sessionId' ,
 router.get('/article/:articleId' , isAuth.authorized , liveSessionController.getArticle)
 
 
+router.post('/predict' , uploaded.single('image') , liveSessionController.handleImagesPrediction)
+
+
 module.exports = router; 

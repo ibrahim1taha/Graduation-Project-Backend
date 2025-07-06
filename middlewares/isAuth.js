@@ -10,20 +10,13 @@ const authorized = async (req, res, next) => {
             customErr(401, "Unauthorized");
         }
         const token = auth.split(" ")[1];
-
         const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
-
         if (!decodedToken?.userId) customErr(401, "Not authorized!");
-
         const userId = new ObjectId(decodedToken.userId);
-
         const user = await userModel.findById(userId);
-
         if (!user) customErr(404, "User not found!");
-
         req.userId = userId;
         req.userRole = decodedToken.role;
-
         next();
     } catch (err) {
         console.log(err);

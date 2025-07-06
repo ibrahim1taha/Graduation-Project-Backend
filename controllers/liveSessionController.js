@@ -5,8 +5,9 @@ const usersModel = require('../models/users');
 const articlesModel = require('../models/articles'); 
 const SessionsServices =require('../services/liveSessionServices'); 
 const QuizServices = require("../services/quizServices");
-
 const socket = require('../sockets/socket'); 
+const FormData = require('form-data');
+const axios = require('axios');
 class liveSessionController {
 
 	static async joinLiveSession(sessionId, userId, socket, io) {
@@ -114,6 +115,37 @@ class liveSessionController {
 			next(err); 
 		}
 	}
+
+	static async handleImagesPrediction(req, res, next) {
+		const frame = req.file;
+		const { sessionId, userName, userId } = req.body;
+
+		try {
+			if (!frame) {
+				throw new Error("No file uploaded.");
+			}
+
+			const formData = new FormData();
+			formData.append('image', frame.buffer, {
+				filename: frame.originalname || 'image.jpg',
+				contentType: frame.mimetype || 'image/jpeg',
+			});
+			console.log('yes') ; 
+			const response = await axios.post('http://localhost:8000/api/predict-single', formData, {
+				headers: formData.getHeaders(),
+				maxBodyLength: Infinity,
+			});
+
+			console.log('API Response:', response.data);
+			res.json(response.data);
+
+			} catch (err) {
+				console.error('Error calling API:', err?.response?.data || err.message);
+				res.status(500).json({ error: true, message: err?.response?.data || err.message });
+			}
+	}
+
+	
 }
 
 module.exports = liveSessionController; 
