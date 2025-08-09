@@ -107,3 +107,6 @@ educonnect-backend/
 - **Gemini API**: Used for generating quiz questions from session content
 - **AssemblyAI**: Converts session audio recordings to text
 - **Custom AI Services**: Processes transcripts into structured articles
+
+## 🌐 LiveMentor Demo [here](https://drive.google.com/file/d/10x41-VtZgrzhKOABNqhf8W63z6f83enn/view)
+
