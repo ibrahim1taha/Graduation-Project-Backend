@@ -4,8 +4,8 @@ const { Upload } = require('@aws-sdk/lib-storage');
 const customErr = require('../utils/customErr')
 const sharpImage = require('../utils/sharpImage');
 // should be in .env file 
-const S3_BUCKET_NAME = 'grad-proj-images'
-const AWS_REGION = 'eu-north-1';
+const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME
+const AWS_REGION = process.env.AWS_REGION ;
 
 const handleFileUploaded = async (type = 'image' , file, folderName, width, height) => {
 
