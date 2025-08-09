@@ -1,44 +1,109 @@
-# Learning Management System (LMS) - Backend API
+# 📚 LiveMentor - Intelligent Learning Management System (LMS)
 
-> A robust backend API for a Learning Management System that powers online course delivery, live sessions, quizzes, and community features.
+![Node.js](https://img.shields.io/badge/Node.js-18.x-green)
+![Express](https://img.shields.io/badge/Express-4.x-lightgrey)
+![MongoDB](https://img.shields.io/badge/MongoDB-6.x-brightgreen)
+![Firebase](https://img.shields.io/badge/Firebase-Admin-yellow)
+![AWS-S3](https://img.shields.io/badge/AWS-S3-orange)
+![AI-Integrated](https://img.shields.io/badge/AI-Integrated-blueviolet)
 
-## 🚀 Features
+## 🌟 Overview
 
-### 🔒 Authentication
-- JWT-based authentication with email verification
-- Secure password reset with OTP verification
+LiveMentor is an **AI-powered learning platform** that bridges traditional classroom engagement with modern digital education. Unlike conventional systems, it creates an **intelligent ecosystem** that continuously observes, interprets, and reinforces learning through:
 
-### 📚 Course Management
-- CRUD operations for courses
-- AWS S3 integration for media storage
-- Course enrollment system
+✔ **Real-time behavioral analysis** (facial expressions, attention tracking)  
+✔ **AI-driven content transformation** (speech-to-structured knowledge)  
+✔ **Adaptive feedback mechanisms** (personalized quizzes & reinforcement)  
+✔ **Seamless cross-platform experience** (web & mobile optimized)  
 
-### � Live Sessions
-- Real-time video sessions with WebRTC
-- Session summarization
-- Article generation from sessions
+The platform doesn't just deliver content - it **simulates classroom interactivity** by reconstructing sessions into pedagogically coherent materials with contextual clarity and conceptual links.
 
-### ✍ Quizzes
-- AI-generated quizzes using Gemini API
-- Quiz submission and grading system
+## 🚀 Key Features
 
-### 💬 Community Features
-- Course-based discussion forums
-- Real-time chat with file sharing
-- WebSocket notifications
+### 🎓 Intelligent Course Management
+- AI-assisted course creation
+- Dynamic session scheduling
+- Smart enrollment system
 
-### 👤 User Profiles
-- Personalized user profiles
-- Media uploads and management
+### 💬 Context-Aware Communication
+- Real-time engagement analytics
+- Behavioral insight dashboards
+- Adaptive notification system
+
+### 🎥 Live Session Intelligence
+- WebRTC video with attention tracking
+- AI-generated session summaries
+- Automatic content restructuring
+
+### 📝 Adaptive Assessments
+- AI-generated quizzes from live content
+- Performance-based question difficulty
+- Competency gap analysis
 
 ## 🛠 Tech Stack
 
-| Category       | Technologies                          |
-|----------------|---------------------------------------|
-| **Backend**    | Node.js, Express.js                   |
-| **Database**   | MongoDB (with Mongoose ODM)           |
-| **Auth**       | JWT, OTP verification                |
-| **Storage**    | AWS S3                                |
-| **Real-time**  | Socket.io                             |
-| **AI**         | Gemini API for quiz generation        |
-| **Media**      | FFmpeg for audio/video processing     |
+**Core:**
+- Node.js | Express | MongoDB  
+**AI Services:**
+- Gemini API | AssemblyAI  
+**Infrastructure:**
+- AWS S3 (media storage)  
+- Firebase (notifications)  
+**Real-Time:**
+- Socket.IO (live interactions)  
+- WebRTC (video sessions)  
+
+## 📦 Installation
+
+```bash
+# Clone repository
+git clone https://github.com/yourusername/educonnect-backend.git
+
+# Install dependencies
+npm install
+
+# Configure environment
+cp .env.example .env
+
+# Start server
+npm start
+```
+
+## 🔧 Configuration
+
+Create a `.env` file with the following variables:
+
+```
+MONGODB_URI=mongodb://localhost:27017/educonnect
+PORT=3000
+JWT_SECRET=your_jwt_secret
+FIREBASE_SERVICE_ACCOUNT=path/to/serviceAccount.json
+AWS_ACCESS_KEY_ID=your_aws_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret
+AWS_REGION=eu-north-1
+S3_BUCKET_NAME=grad-proj-images
+ASSEMBLYAI_API_KEY=your_assemblyai_key
+GEMINI_API_KEY=your_gemini_key
+```
+
+## 🏗️ Project Structure
+
+```
+educonnect-backend/
+├── config/               # Configuration files
+├── controllers/          # Route controllers
+├── middlewares/          # Custom middleware
+├── models/               # MongoDB models
+├── routes/               # API routes
+├── services/             # Business logic
+├── sockets/              # Socket.io handlers
+├── utils/                # Utility functions
+├── app.js                # Express app setup
+└── server.js             # Server entry point
+```
+
+## 🤖 AI Integration
+
+- **Gemini API**: Used for generating quiz questions from session content
+- **AssemblyAI**: Converts session audio recordings to text
+- **Custom AI Services**: Processes transcripts into structured articles
