@@ -75,11 +75,15 @@ Create a `.env` file with the following variables:
 
 ```
 MONGODB_URI=mongodb://localhost:27017/educonnect
-PORT=3000
-JWT_SECRET=your_jwt_secret
+PORT=8080
+JWT_SECRET= jwt_secret
+MAIL_HOST = smtp.gmail.com
+MAIL_PORT = 587
+MAIL_USER = ibrahimmohamed99026@gmail.com
+MAIL_PASS = mail_pass
 FIREBASE_SERVICE_ACCOUNT=path/to/serviceAccount.json
-AWS_ACCESS_KEY_ID=your_aws_key
-AWS_SECRET_ACCESS_KEY=your_aws_secret
+AWS_ACCESS_KEY_ID= aws_key
+AWS_SECRET_ACCESS_KEY= aws_secret
 AWS_REGION=eu-north-1
 S3_BUCKET_NAME=grad-proj-images
 ASSEMBLYAI_API_KEY=your_assemblyai_key
