@@ -1,4 +1,4 @@
-const apiKey = "AIzaSyDoFaKAnYPITG8BaILlkXCgewtrRs14-ZQ";
+const apiKey = process.env.API_KEY
 const URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 ////////////////////
 
@@ -7,7 +7,7 @@ const CallAiServices = require('./callAiServices');
 
 
 const client = new AssemblyAI({
-  apiKey: "b23cf565f16c43aab6bf7cf55962321f",
+  apiKey: process.env.AssemblyAI_API_KEY,
 });
 
 const generateArticle = async (audioFile) => {
